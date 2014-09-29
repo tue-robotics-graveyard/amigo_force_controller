@@ -19,13 +19,13 @@ include_directories(
 orocos_install_headers(DIRECTORY 
 	include)
 
+# Get all the headers
+file(GLOB_RECURSE HEADER_FILES include/*.hpp)
+
 orocos_generate_package(
   INCLUDE_DIRS include
   DEPENDS rtt_ros rtt_roscomm rtt_rosclock rtt_rosdeployment rtt_rosnode rtt_ros_msgs std_msgs
 )
 
-install(FILES
-DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-
-#orocos_component(COMPONENT src/COMPONENT.cpp)
-#target_link_libraries(COMPONENT ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+orocos_component(CurrentFFW src/CurrentFFW.cpp ${HEADER_FILES})
+target_link_libraries(CurrentFFW ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
