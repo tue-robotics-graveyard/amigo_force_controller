@@ -62,6 +62,7 @@ namespace FORCECONTROL
 		doubles gearratio;
 		doubles Ra;
 		doubles La;
+        doubles voltage_gains;
 		
 		// Declaring private functions
 		void determineDt();

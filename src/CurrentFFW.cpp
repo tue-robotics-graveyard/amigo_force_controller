@@ -29,6 +29,7 @@ CurrentFFW::CurrentFFW(const string& name) :
     addProperty( "GearRatio", gearratio ).doc("A vector containing gear ratios");
     addProperty( "TerminalResistance", Ra ).doc("A vector containing terminal resistances");
     addProperty( "ArmatureWindingInductance", La ).doc("A vector containing armature winding inductances");
+    addProperty( "VoltageGains", voltage_gains ).doc("A vector containing gains to multiply voltage with for example for PWM controlled motors");
 }
 
 CurrentFFW::~CurrentFFW(){}
@@ -112,10 +113,10 @@ void CurrentFFW::updateHook()
     current_dot = calculatederivative_current(input_current);
     velocity = calculatederivative_position(input_position);
 
-    // Calculate Voltage
+    // Calculate Voltage - Eq 7- 8 from Electric Drives, An integrated Approach by Ned Mohan multiplied by voltage_gains to convert to PWM value
     doubles voltage(N,0.0);
     for (uint i = 0; i < N; i++) {
-        voltage[i] = Ke[i]*velocity[i]/gearratio[i] + Ra[i]*input_current[i] + La[i]*current_dot[i];
+        voltage[i] = (Ke[i]*velocity[i]/gearratio[i] + Ra[i]*input_current[i] + La[i]*current_dot[i])*voltage_gains[i];
     }
 
     // Write Output 
