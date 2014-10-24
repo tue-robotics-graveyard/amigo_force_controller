@@ -1,6 +1,6 @@
- /** UPF_TorqueFeedbackController.cpp
+ /** TorqueFeedback.cpp
  *
- * @class TorqueFeedbackController
+ * @class TorqueFeedback
  *
  * \author Max Baeten
  * \date January, 2014
@@ -16,14 +16,14 @@
 #include <vector>
 #include <math.h>
 #include <Eigen/Eigen>
-#include "UPF_TorqueFeedbackController.hpp"
+#include "TorqueFeedback.hpp"
 
 using namespace std;
 using namespace RTT;
 using namespace Eigen;
-using namespace UPF;
+using namespace FORCECONTROL;
 
-TorqueFeedbackController::TorqueFeedbackController(const string& name) : TaskContext(name, PreOperational)
+TorqueFeedback::TorqueFeedback(const string& name) : TaskContext(name, PreOperational)
 {
     // Adding ports
     addEventPort( "in_u", inport_u );
@@ -47,9 +47,9 @@ TorqueFeedbackController::TorqueFeedbackController(const string& name) : TaskCon
     addProperty( "StiffnessSubDiagonal", 				StiffnessSubDiagonal );
 }
 
-TorqueFeedbackController::~TorqueFeedbackController(){}
+TorqueFeedback::~TorqueFeedback(){}
 
-bool TorqueFeedbackController::configureHook()
+bool TorqueFeedback::configureHook()
 {
     // declaring size of in and output doubles
     input_u.assign(N,0.0);
@@ -71,37 +71,37 @@ bool TorqueFeedbackController::configureHook()
     return true;
 }
 
-bool TorqueFeedbackController::startHook()
+bool TorqueFeedback::startHook()
 {
     // port connection checks
     if ( ( !inport_u.connected() ) || ( !inport_tau.connected() ) || ( !inport_taudot.connected() ) ) {
-        log(Error)<<"TorqueFeedbackController: One of the inports is not connected: (in_u, in_tau, in_taudot) !"<<endlog();
+        log(Error)<<"TorqueFeedback: One of the inports is not connected: (in_u, in_tau, in_taudot) !"<<endlog();
         return false;
     }
 
     if ( !outport.connected() ) {
-        log(Error)<<"TorqueFeedbackController: Outport not connected!"<<endlog();
+        log(Error)<<"TorqueFeedback: Outport not connected!"<<endlog();
         return false;
     }
 
     // check vector input of the four input matrices:  MotorInertia, ScaledMotorInertia, Damping, Stiffness
     if (( MotorInertiaSuperDiagonal.size() != N ) || ( MotorInertiaDiagonal.size() != ( N - 1 ) ) || ( MotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedbackController: One of the input vectors of the MotorInertia Matrix has a wrong size"<<endlog();
+        log(Error)<<"TorqueFeedback: One of the input vectors of the MotorInertia Matrix has a wrong size"<<endlog();
         return false;
     }
 
     if (( ScaledMotorInertiaSuperDiagonal.size() != N ) || ( ScaledMotorInertiaDiagonal.size() != ( N - 1 ) ) || ( ScaledMotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedbackController: One of the input vectors of the ScaledMotorInertia Matrix has a wrong size"<<endlog();
+        log(Error)<<"TorqueFeedback: One of the input vectors of the ScaledMotorInertia Matrix has a wrong size"<<endlog();
         return false;
     }
 
     if (( DampingSuperDiagonal.size() != N ) || ( DampingDiagonal.size() != ( N - 1 ) ) || ( DampingSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedbackController: One of the input vectors of the Damping Matrix has a wrong size"<<endlog();
+        log(Error)<<"TorqueFeedback: One of the input vectors of the Damping Matrix has a wrong size"<<endlog();
         return false;
     }
 
     if (( StiffnessSuperDiagonal.size() != N ) || ( StiffnessDiagonal.size() != ( N - 1 ) ) || ( StiffnessSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedbackController: One of the input vectors of the Stiffness Matrix has a wrong size"<<endlog();
+        log(Error)<<"TorqueFeedback: One of the input vectors of the Stiffness Matrix has a wrong size"<<endlog();
         return false;
     }
 
@@ -133,16 +133,16 @@ bool TorqueFeedbackController::startHook()
     BBtinv = B * Bt.inverse();
     IMinBBtinv = (I - (BBtinv));
 
-	log(Warning)<<"TorqueFeedbackController: configureHook() executed properly!"<<endlog();
+	log(Warning)<<"TorqueFeedback: configureHook() executed properly!"<<endlog();
 	
     return true;
 } 
  
-void TorqueFeedbackController::updateHook()
+void TorqueFeedback::updateHook()
 {
     // Read input doubles
     if ( !inport_u.read(input_u) == NewData ) {
-        log(Error)<<"TorqueFeedbackController: updateHook() was triggered while no newdata on inputPort! This should be impossible for eventtriggered component"<<endlog();
+        log(Error)<<"TorqueFeedback: updateHook() was triggered while no newdata on inputPort! This should be impossible for eventtriggered component"<<endlog();
         return;
     }
     inport_tau.read(input_tau);
@@ -167,4 +167,4 @@ void TorqueFeedbackController::updateHook()
     outport.write(output);
 }
 
-ORO_CREATE_COMPONENT(UPF::TorqueFeedbackController)
+ORO_CREATE_COMPONENT(FORCECONTROL::TorqueFeedback)

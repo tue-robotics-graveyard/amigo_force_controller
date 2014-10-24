@@ -1,11 +1,12 @@
 /** CurrentFFW.cpp
  *
- * @class CurrentControl
+ * @class CurrentFFW
  *
  * \author Max Baeten
  * \date September, 2014
  * \version 1.0
  * To Do: Fix output of derivative, make derivative such that it can be called twice
+ * or make derivative as port
  *
  */
 

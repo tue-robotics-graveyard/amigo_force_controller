@@ -1,20 +1,15 @@
-########################################################################
-#                                                                      #
-# Right Philips Experimental Robotic Arm deployer file.                #
-#                                                                      #
-# Max Baeten														   #
-# September 2011                                                       #
-#                                                                      #
-########################################################################
-
-#### IMPORT PACKAGE ####
-import("amigo_pera_forcecontroller")
-trigger
+#########################################################################
+#																		#
+# Right Philips Experimental Robotic Arm deployer file.					#
+#																		#
+# Max Baeten															#
+#																		#
+#########################################################################
 
 #### DECLARATION OF PARAMETERS ####
-var double Ts = 0.001
-var strings JOINT_NAMES = strings( "shoulder_yaw_joint_right", "shoulder_pitch_joint_right", "shoulder_roll_joint_right", "elbow_pitch_joint_right", "elbow_roll_joint_right", "wrist_pitch_joint_right", "wrist_yaw_joint_right" ) 
-var strings DUMMY_JOINT_NAMES = strings( "finger1_joint_right", "finger1_tip_joint_right", "finger2_joint_right", "finger2_tip_joint_right" )
+var double Ts 					= 0.001
+var strings JOINT_NAMES 		= strings( "shoulder_yaw_joint_right", "shoulder_pitch_joint_right", "shoulder_roll_joint_right", "elbow_pitch_joint_right", "elbow_roll_joint_right", "wrist_pitch_joint_right", "wrist_yaw_joint_right" ) 
+var strings DUMMY_JOINT_NAMES 	= strings( "finger1_joint_right", "finger1_tip_joint_right", "finger2_joint_right", "finger2_tip_joint_right" )
 var array UPPERJOINTLIMIT 		= array (   0.0,  		1.57,  		1.57, 		2.23,  		1.83,  		0.95,  		0.61,  4.0		)
 var array LOWERJOINTLIMIT 		= array (   -1.57, 		-1.57, 		-1.57,  	0.0, 		-1.83		-0.95, 		-0.61, -4.0		)
 var double PI					= 3.141592
@@ -37,32 +32,10 @@ var int N_JOINTS				= 7
 var int BODYNUMBER 				= 4
 var string BODYNAME 			= "right_arm"
 var bool HOMEABLE 				= false
-var double Bq12 				= 1512900.0; 
-var double Bq3 					= 1512900.0
-var double Bq45 				= 118040.0
-var double Bq67 				= 47192.0
-var double sBq12 				= Bq12*0.25
-var double sBq3 				= Bq3*0.25 
-var double sBq45 				= Bq45*0.25 
-var double sBq67 				= Bq67*0.25
-var double K1 					= 1.0
-var double K2 					= 1.0
-var double K3 					= 1.0
-var double K4 					= 1.0
-var double K5 					= 1.0
-var double K6 					= 1.0
-var double K7 					= 1.0
-var double D1 					= 1.0
-var double D2 					= 1.0
-var double D3 					= 1.0
-var double D4 					= 1.0
-var double D5 					= 1.0
-var double D6 					= 1.0
-var double D7 					= 1.0
-var double Kt12					= 1.0
-var double Kt3					= 1.0
-var double Kt45					= 1.0
-var double Kt67					= 1.0
+var double Bq12 	= 1512900.0;	var double Bq3 		= 1512900.0;	var double Bq45 	= 118040.0; 	var double Bq67 	= 47192.0;
+var double sBq12 	= Bq12/4.0;		var double sBq3 	= Bq3/4.0;		var double sBq45 	= Bq45/4.0; 	var double sBq67 	= Bq67/4.0;
+var double K12		= 1.0;			var double K3		= 1.0;			var double K45		= 1.0;			var double K67		= 1.0;
+var double D12		= 1.0;			var double D3		= 1.0;			var double D45		= 1.0;			var double D67		= 1.0;
  
 #### NAMEBODYPART ####
 Supervisor.NameBodyPart( BODYNUMBER, BODYNAME, HOMEABLE)
@@ -78,55 +51,53 @@ JointStateAggregator.addAggregationPort(BODYNAME)
 loadComponent("RPERA_ReadEncoders","SOEM::ReadEncoders")
 addPeer("Supervisor","RPERA_ReadEncoders")
 setActivity("RPERA_ReadEncoders",Ts,HighestPriority,ORO_SCHED_RT)
-RPERA_ReadEncoders.encoderbits = 65536
-RPERA_ReadEncoders.enc2SI = array (ENC2SI_SM ,ENC2SI_SM, ENC2SI_S3 , ENC2SI_EM , ENC2SI_EM , ENC2SI_WM , ENC2SI_WM)
+RPERA_ReadEncoders.encoderbits 				= 65536
+RPERA_ReadEncoders.enc2SI 					= array (ENC2SI_SM ,ENC2SI_SM, ENC2SI_S3 , ENC2SI_EM , ENC2SI_EM , ENC2SI_WM , ENC2SI_WM)
 RPERA_ReadEncoders.configure
 
 ## JOINTANGLESTOROS - publishes joint angles on ROS-topic
 loadComponent("RPERA_JointAnglesToROS","ROS::DoublesToJointState")
 addPeer("Supervisor","RPERA_JointAnglesToROS")
 setActivity("RPERA_JointAnglesToROS",0.005,LowestPriority,ORO_SCHED_OTHER)
-RPERA_JointAnglesToROS.JointNames = JOINT_NAMES
+RPERA_JointAnglesToROS.JointNames 			= JOINT_NAMES
 RPERA_JointAnglesToROS.configure
 
 ## SENSORTORQUES - Converts measured sensor voltage into torques
 loadComponent("RPERA_SensorTorques","ARM::SensorTorquesAutoC3")
 addPeer("Supervisor","RPERA_SensorTorques")
 setActivity("RPERA_SensorTorques",(Ts),LowestPriority,ORO_SCHED_OTHER)
-RPERA_SensorTorques.vector_size = 9
-RPERA_SensorTorques.obs_inputs = array (3, 9)
-RPERA_SensorTorques
-RPERA_SensorTorques.c1 		= array (42.0,		4250.0,		94.0,		20.0,		825.0,		1.0, 		1.0,		32.3375		)
-RPERA_SensorTorques.c2 		= array (-0.8,		12.0,		1.0,		-2.2,		1.0,		1.0, 		1.0,		0.2			)
+RPERA_SensorTorques.vector_size 			= N_JOINTS
+RPERA_SensorTorques.c1 						= array (42.0,		4250.0,		94.0,		20.0,		825.0,		1.0, 		1.0)
+RPERA_SensorTorques.c2 						= array (-0.8,		12.0,		1.0,		-2.2,		1.0,		1.0, 		1.0)
 RPERA_SensorTorques.configure
 
 ### LOWPASS - Removes noise from SensorTorques output
 loadComponent("RPERA_TorqueFilter","FILTERS::SecondOrderLowPasses")
 addPeer("Supervisor","RPERA_TorqueFilter")
 setActivity("RPERA_TorqueFilter",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_TorqueFilter.vector_size 	= Nj
-RPERA_TorqueFilter.sampling_time 	= Ts
-RPERA_TorqueFilter.pole_frequency 	= array (10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
-RPERA_TorqueFilter.pole_damping 	= array (0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7)
+RPERA_TorqueFilter.vector_size 				= N_JOINTS
+RPERA_TorqueFilter.sampling_time 			= Ts
+RPERA_TorqueFilter.pole_frequency 			= array (10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+RPERA_TorqueFilter.pole_damping 			= array (0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7)
 RPERA_TorqueFilter.configure
 
 ### TORQUEDIFF - Differentiates torque output
 loadComponent("RPERA_TorqueDiff","MATH::RealTimeDerivator")
 addPeer("Supervisor","RPERA_TorqueDiff")
 setActivity("RPERA_TorqueDiff",Ts,LowestPriority,ORO_SCHED_OTHER)
-RPERA_TorqueDiff.vector_size	= 8
-RPERA_TorqueDiff.bw 			= 10.0
+RPERA_TorqueDiff.vector_size				= 8
+RPERA_TorqueDiff.bw	 						= 10.0
 RPERA_TorqueDiff.configure
 
 ### READREFERENCE - Receices control output u from whole body controller
-loadComponent("RPERA_ReadReferences","ROS::JointStateToDoubles")
-addPeer("Supervisor","RPERA_ReadReferences")
-setActivity("RPERA_ReadReferences",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_ReadReferences.NumberOfJoints = 7
-RPERA_ReadReferences.configure
+loadComponent("RPERA_ReaduRef","ROS::JointStateToDoubles")
+addPeer("Supervisor","RPERA_ReaduRef")
+setActivity("RPERA_ReaduRef",0.0,HighestPriority,ORO_SCHED_RT)
+RPERA_ReaduRef.vector_size 					= 7
+RPERA_ReaduRef.configure
 
 ### TORQUEFEEDBACK - Calculates Tm = B*inv(Btheta)*u + (I-B*inv(Btheta))*(tau + D*inv(K)*tau_dot)
-loadComponent("RPERA_TorqueFeedback","UPF::TorqueLoop")
+loadComponent("RPERA_TorqueFeedback","UPF::TorqueFeedbackController")
 addPeer("Supervisor","RPERA_TorqueFeedback")
 setActivity("RPERA_TorqueFeedback",Ts,HighestPriority,ORO_SCHED_RT)
 RPERA_TorqueFeedback.N									= N_JOINTS
@@ -148,7 +119,7 @@ RPERA_TorqueFeedback.configure
 loadComponent("RPERA_FrictionTorques","SOURCES::ConstantSignal")
 addPeer("Supervisor","RPERA_FrictionTorques")
 setActivity("RPERA_FrictionTorques",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_FrictionTorques.vectorsize 			= Nj
+RPERA_FrictionTorques.vectorsize 			= N_JOINTS
 RPERA_FrictionTorques.gain 					= array (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 RPERA_FrictionTorques.configure
 
@@ -171,17 +142,9 @@ RPERA_GravityTorques.COGz		 			= array (	0.0,	0.0,	-0.16,	0.0,	-0.14,	0.0,	0.0)
 loadComponent("RPERA_ADD","MATH::Addition")
 addPeer("Supervisor","RPERA_ADD")
 setActivity("RPERA_ADD",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_ADD.vectorsize 						= Nj
+RPERA_ADD.vectorsize 						= N_JOINTS
 RPERA_ADD.numberofinputs					= array (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 RPERA_ADD.configure
-
-### MOTORCONSTANT - Calculates Im = Tm / Kt
-loadComponent("RPERA_MotorConstant","MATH::Gains")
-addPeer("Supervisor","RPERA_MotorConstant")
-setActivity("RPERA_MotorConstant",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_MotorConstant.vectorsize 				= N_Joints
-RPERA_MotorConstant.gain 					= array (1.0/Kt12, 1.0/Kt12, 1.0/Kt3, 1.0/Kt45, 1.0/Kt45, 1.0/Kt67, 1.0/Kt67)
-RPERA_MotorConstant.configure
 
 ### Joint to motor torques ###
 loadComponent("RPERA_JointToMotorSpace","MATH::MatrixTransform")
@@ -204,8 +167,8 @@ RPERA_JointToMotorSpace.function9 			= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.0
 loadComponent("RPERA_PosDiff","MATH::RealTimeDerivator")
 addPeer("Supervisor","RPERA_PosDiff")
 setActivity("RPERA_PosDiff",Ts,LowestPriority,ORO_SCHED_OTHER)
-RPERA_PosDiff.vector_size	= 8
-RPERA_PosDiff.bw 			= 10.0
+RPERA_PosDiff.vector_size					= 8
+RPERA_PosDiff.bw 							= 10.0
 RPERA_PosDiff.configure
 
 
@@ -236,9 +199,9 @@ connect ("RPERA_TorqueFilter.out","RPERA_TorqueDiff.in", ConnPolicy() )
 connect ("RPERA_TorqueFilter.out","RPERA_TorqueFeedback.in_tau", ConnPolicy() )
 connect ("RPERA_TorqueDiff.out","RPERA_TorqueFeedback.in_taudot", ConnPolicy() )
 
-connect ("RPERA_ReadReferences.out","RPERA_TorqueFeedback.in", ConnPolicy() )
+connect ("RPERA_ReaduRef.out","RPERA_TorqueFeedback.in", ConnPolicy() )
 
-stream ("RPERA_ReadReferences.in", ros.topic("/amigo/right_arm/wbc/references"))
+stream ("RPERA_ReaduRef.in", ros.topic("/amigo/right_arm/wbc/references"))
 stream ("RPERA_JointAnglesToROS.out", ros.topic("/amigo/right_arm/measurements")) 
 
 #### START COMPONENTS ####
@@ -253,16 +216,4 @@ Supervisor.AddEnabledPeer ("RPERA_ADD", BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_SensorTorques", BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueFilter", BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueDiff", BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_ReadReferences", BODYNUMBER )
-
-
-# To Do
-# Add clipped JointAngelsToROS?
-# Fix Gripper compatibilaty
-# Fix Friction Estimation
-#
-#
-#
-
-
-
+Supervisor.AddEnabledPeer ("RPERA_ReaduRef", BODYNUMBER )

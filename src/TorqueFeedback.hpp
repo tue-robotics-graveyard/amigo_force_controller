@@ -1,14 +1,14 @@
-/** UPF_TorqueFeedbackController.hpp
+/** TorqueFeedback.hpp
 *
-* @class TorqueFeedbackController
+* @class TorqueFeedback
 *
 * \author Max Baeten
 * \date January, 2014
 * \version 1.0
 *
 */
-#ifndef UPF_TORQUEFEEDBACKCONTROLLER_HPP
-#define UPF_TORQUEFEEDBACKCONTROLLER_HPP
+#ifndef TORQUEFEEDBACK_HPP
+#define TORQUEFEEDBACK_HPP
 
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>
@@ -26,11 +26,11 @@ using namespace Eigen;
 using namespace std;
 using namespace RTT;
 
-namespace UPF
+namespace FORCECONTROL
 {
 	typedef std::vector<double> doubles;
 
-	class TorqueFeedbackController
+	class TorqueFeedback
 	: public RTT::TaskContext
 	{
 		private:
@@ -59,8 +59,8 @@ namespace UPF
 			InputPort<doubles> inport_taudot;
 			OutputPort<doubles> outport;
 
-			TorqueFeedbackController(const string& name);
-			~TorqueFeedbackController();
+			TorqueFeedback(const string& name);
+			~TorqueFeedback();
 
 			bool configureHook();
 			bool startHook();
