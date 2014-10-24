@@ -7,7 +7,7 @@
 #########################################################################
 
 #### DECLARATION OF PARAMETERS ####
-var double Ts 					= 0.001
+var double TS 					= 0.001
 var strings JOINT_NAMES 		= strings( "shoulder_yaw_joint_right", "shoulder_pitch_joint_right", "shoulder_roll_joint_right", "elbow_pitch_joint_right", "elbow_roll_joint_right", "wrist_pitch_joint_right", "wrist_yaw_joint_right" ) 
 var strings DUMMY_JOINT_NAMES 	= strings( "finger1_joint_right", "finger1_tip_joint_right", "finger2_joint_right", "finger2_tip_joint_right" )
 var array UPPERJOINTLIMIT 		= array (   0.0,  		1.57,  		1.57, 		2.23,  		1.83,  		0.95,  		0.61,  4.0		)
@@ -50,7 +50,7 @@ JointStateAggregator.addAggregationPort(BODYNAME)
 ## READENCODERS - Converts encoder counts into radians
 loadComponent("RPERA_ReadEncoders","SOEM::ReadEncoders")
 addPeer("Supervisor","RPERA_ReadEncoders")
-setActivity("RPERA_ReadEncoders",Ts,HighestPriority,ORO_SCHED_RT)
+setActivity("RPERA_ReadEncoders",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_ReadEncoders.encoderbits 				= 65536
 RPERA_ReadEncoders.enc2SI 					= array (ENC2SI_SM ,ENC2SI_SM, ENC2SI_S3 , ENC2SI_EM , ENC2SI_EM , ENC2SI_WM , ENC2SI_WM)
 RPERA_ReadEncoders.configure
@@ -65,7 +65,7 @@ RPERA_JointAnglesToROS.configure
 ## SENSORTORQUES - Converts measured sensor voltage into torques
 loadComponent("RPERA_SensorTorques","ARM::SensorTorquesAutoC3")
 addPeer("Supervisor","RPERA_SensorTorques")
-setActivity("RPERA_SensorTorques",(Ts),LowestPriority,ORO_SCHED_OTHER)
+setActivity("RPERA_SensorTorques",(TS),LowestPriority,ORO_SCHED_OTHER)
 RPERA_SensorTorques.vector_size 			= N_JOINTS
 RPERA_SensorTorques.c1 						= array (42.0,		4250.0,		94.0,		20.0,		825.0,		1.0, 		1.0)
 RPERA_SensorTorques.c2 						= array (-0.8,		12.0,		1.0,		-2.2,		1.0,		1.0, 		1.0)
@@ -76,7 +76,7 @@ loadComponent("RPERA_TorqueFilter","FILTERS::SecondOrderLowPasses")
 addPeer("Supervisor","RPERA_TorqueFilter")
 setActivity("RPERA_TorqueFilter",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_TorqueFilter.vector_size 				= N_JOINTS
-RPERA_TorqueFilter.sampling_time 			= Ts
+RPERA_TorqueFilter.sampling_time 			= TS
 RPERA_TorqueFilter.pole_frequency 			= array (10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
 RPERA_TorqueFilter.pole_damping 			= array (0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7)
 RPERA_TorqueFilter.configure
@@ -84,7 +84,7 @@ RPERA_TorqueFilter.configure
 ### TORQUEDIFF - Differentiates torque output
 loadComponent("RPERA_TorqueDiff","MATH::RealTimeDerivator")
 addPeer("Supervisor","RPERA_TorqueDiff")
-setActivity("RPERA_TorqueDiff",Ts,LowestPriority,ORO_SCHED_OTHER)
+setActivity("RPERA_TorqueDiff",TS,LowestPriority,ORO_SCHED_OTHER)
 RPERA_TorqueDiff.vector_size				= 8
 RPERA_TorqueDiff.bw	 						= 10.0
 RPERA_TorqueDiff.configure
@@ -96,7 +96,7 @@ setActivity("RPERA_ReaduRef",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_ReaduRef.vector_size 					= 7
 RPERA_ReaduRef.configure
 
-### TORQUEFEEDBACK - Calculates Tm = B*inv(Btheta)*u + (I-B*inv(Btheta))*(tau + D*inv(K)*tau_dot)
+### TORQUEFEEDBACK
 loadComponent("RPERA_TorqueFeedback","UPF::TorqueFeedbackController")
 addPeer("Supervisor","RPERA_TorqueFeedback")
 setActivity("RPERA_TorqueFeedback",Ts,HighestPriority,ORO_SCHED_RT)
@@ -108,10 +108,10 @@ RPERA_TorqueFeedback.ScaledMotorInertiaSuperDiagonal	= array( 	sBq12,		0.0,		0.0
 RPERA_TorqueFeedback.ScaledMotorInertiaDiagonal			= array( 	sBq12,   	sBq12,		sBq3, 		sBq45, 		sBq45,		sBq67, 		sBq67	)
 RPERA_TorqueFeedback.ScaledMotorInertiaSubDiagonal		= array( 	sBq12,		0.0,		0.0, 		sBq45,		0.0,		sBq67				)
 RPERA_TorqueFeedback.DampingSuperDiagonal				= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0					)
-RPERA_TorqueFeedback.DampingDiagonal					= array( 	K1,			K2,			K3,			K4,			K5,			K6,			K7)
+RPERA_TorqueFeedback.DampingDiagonal					= array( 	K12,		K12,		K3,			K45,		K45,		K67,		K67		)
 RPERA_TorqueFeedback.DampingSubDiagonal					= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0					)
 RPERA_TorqueFeedback.StiffnessSuperDiagonal				= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0					)
-RPERA_TorqueFeedback.StiffnessDiagonal					= array( 	D1,			D2,			D3,			D4,			D5,			D6,			D7)
+RPERA_TorqueFeedback.StiffnessDiagonal					= array( 	D12,		D12,		D3,			D45,		D45,		D67,		D67		)
 RPERA_TorqueFeedback.StiffnessSubDiagonal				= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0					)
 RPERA_TorqueFeedback.configure
 
