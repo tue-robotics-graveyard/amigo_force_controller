@@ -17,17 +17,14 @@ var double GEARRATIO_SM			= 1.0/550.0
 var double GEARRATIO_S3		    = 1.0/371.25
 var double GEARRATIO_EM			= 1.0/410.0
 var double GEARRATIO_WM			= 1.0/350.0
-var double GEARRATIO_HM			= 196.0/3249.0
 var double ENCODERCOUNTS_SM		= 256.0*4.0
 var double ENCODERCOUNTS_S3	    = 256.0*4.0
 var double ENCODERCOUNTS_EM		= 500.0*4.0 
 var double ENCODERCOUNTS_WM		= 128.0*4.0
-var double ENCODERCOUNTS_HM		= 8.0*128.0*4.0 ;# (TO DO: should be 16*4, remove this factor 8)
 var double ENC2SI_SM			= 2.0*PI*GEARRATIO_SM/ENCODERCOUNTS_SM
 var double ENC2SI_S3			= 2.0*PI*GEARRATIO_S3/ENCODERCOUNTS_S3
 var double ENC2SI_EM			= 2.0*PI*GEARRATIO_EM/ENCODERCOUNTS_EM
 var double ENC2SI_WM			= 2.0*PI*GEARRATIO_WM/ENCODERCOUNTS_WM
-var double ENC2SI_HM 			= 2.0*PI*GEARRATIO_HM/ENCODERCOUNTS_HM
 var int N_JOINTS				= 7
 var int BODYNUMBER 				= 4
 var string BODYNAME 			= "right_arm"
@@ -99,7 +96,7 @@ RPERA_ReaduRef.configure
 ### TORQUEFEEDBACK
 loadComponent("RPERA_TorqueFeedback","UPF::TorqueFeedbackController")
 addPeer("Supervisor","RPERA_TorqueFeedback")
-setActivity("RPERA_TorqueFeedback",Ts,HighestPriority,ORO_SCHED_RT)
+setActivity("RPERA_TorqueFeedback",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_TorqueFeedback.N									= N_JOINTS
 RPERA_TorqueFeedback.MotorInertiaSuperDiagonal			= array( 	Bq12,		0.0,		0.0,		Bq45,		0.0,		Bq67				)
 RPERA_TorqueFeedback.MotorInertiaDiagonal				= array( 	Bq12,   	Bq12,		Bq3, 		Bq45, 		Bq45,		Bq67, 		Bq67	)
@@ -119,11 +116,10 @@ RPERA_TorqueFeedback.configure
 loadComponent("RPERA_FrictionTorques","SOURCES::ConstantSignal")
 addPeer("Supervisor","RPERA_FrictionTorques")
 setActivity("RPERA_FrictionTorques",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_FrictionTorques.vectorsize 			= N_JOINTS
 RPERA_FrictionTorques.gain 					= array (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 RPERA_FrictionTorques.configure
 
-### GRAVITYTORQUES - Calculates for each point mass Tg = transpose(J)*GravityWrench; 
+### GRAVITYTORQUES - Calculates for each point mass Tg = transpose(J)*GravityWrench;
 loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
 addPeer("Supervisor","RPERA_GravityTorques")
 setActivity("RPERA_GravityTorques",0.0,HighestPriority,ORO_SCHED_RT)
@@ -166,7 +162,7 @@ RPERA_JointToMotorSpace.function9 			= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.0
 ### TORQUEDIFF - Differentiates torque output
 loadComponent("RPERA_PosDiff","MATH::RealTimeDerivator")
 addPeer("Supervisor","RPERA_PosDiff")
-setActivity("RPERA_PosDiff",Ts,LowestPriority,ORO_SCHED_OTHER)
+setActivity("RPERA_PosDiff",TS,LowestPriority,ORO_SCHED_OTHER)
 RPERA_PosDiff.vector_size					= 8
 RPERA_PosDiff.bw 							= 10.0
 RPERA_PosDiff.configure

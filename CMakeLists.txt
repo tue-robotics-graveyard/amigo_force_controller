@@ -33,7 +33,7 @@ orocos_generate_package(
   DEPENDS eigen rtt_ros rtt_roscomm rtt_rosclock rtt_rosdeployment rtt_rosnode rtt_ros_msgs std_msgs
 )
 
-orocos_component(CurrentFFW src/CurrentFFW.cpp ${HEADER_FILES})
-target_link_libraries(CurrentFFW ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
-orocos_component(UPF_TorqueFeedbackController src/UPF_TorqueFeedbackController.cpp ${HEADER_FILES})
-target_link_libraries(UPF_TorqueFeedbackController ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+orocos_component(MotorCharacteristics src/MotorCharacteristics.cpp ${HEADER_FILES})
+target_link_libraries(MotorCharacteristics ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+orocos_component(TorqueFeedback src/TorqueFeedback.cpp ${HEADER_FILES})
+target_link_libraries(TorqueFeedback ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
