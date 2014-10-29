@@ -24,23 +24,33 @@ MotorCharacteristics::MotorCharacteristics(const string& name) :
 	    TaskContext(name, PreOperational),
 	    N(0), Ts(0.0)
 {
-    addProperty( "Ts", Ts ).doc("A double value that specifies the sampling time. Should match the sampling time of the component that triggers it (EventPort)");
-    addProperty( "N", N ).doc("An unsigned integer that specifies the number of the in and outputs.");
+    addProperty( "TS", Ts ).doc("A double value that specifies the sampling time. Should match the sampling time of the component that triggers it (EventPort)");
+    addProperty( "vector_size", N ).doc("An unsigned integer that specifies the vector size of the in and outputs.");
+    addProperty( "NumberOfInports", Nin ).doc("An unsigned integer that specifies the number of the in.");
     addProperty( "MotorVoltageConstant", Ke ).doc("A vector containing motor voltage constants");
     addProperty( "GearRatio", gearratio ).doc("A vector containing gear ratios");
     addProperty( "TerminalResistance", Ra ).doc("A vector containing terminal resistances");
     addProperty( "ArmatureWindingInductance", La ).doc("A vector containing armature winding inductances");
-    addProperty( "VoltageGains", voltage_gains ).doc("A vector containing gains to multiply voltage with for example for PWM controlled motors");
+    addProperty( "Volt2PWM", Volt2PWM ).doc("A vector containing gains to multiply voltage with for example for PWM controlled motors");
 }
 
 MotorCharacteristics::~MotorCharacteristics(){}
 
 bool MotorCharacteristics::configureHook()
 {
-    // Adding ports
-    addEventPort( "in_current", inport_current );
+    if ( Nin > 3 ) {
+        log(Error)<<"MotorCharacteristics: Nin larger than 3 is currently not supported. If you need more, increase the number of ports in the MotorCharacteristics.hpp!"<<endlog();
+        return false;
+    }
+
+    // Adding inports
+    addEventPort( "in1_ev", inports[0] );
+    for (uint j = 1; j < Nin; j++) {
+        addPort( "in"+to_string(j+1), inports[j] );
+    }
+
     addEventPort( "in_position", inport_position );
-    addPort( "out_voltage", outport );
+    addPort( "out", outport );
 
     previous_input_current.resize(N);
     previous_output_current.resize(N);
@@ -64,12 +74,14 @@ bool MotorCharacteristics::configureHook()
 bool MotorCharacteristics::startHook()
 {
     // Check Ports:
-    if ( !inport_current.connected() || !inport_position.connected() ) {
-        log(Error)<<"MotorCharacteristics: One of the input ports not connected!"<<endlog();
-        return false;
+    for (uint j = 1; j < Nin; j++) {
+        if ( !inports[j].connected() ) {
+            log(Error)<<"MotorCharacteristics: One of the input ports not connected!"<<endlog();
+            return false;
+        }
     }
-    if ( !outport.connected() ) {
-        log(Warning)<<"MotorCharacteristics: Output port not connected!"<<endlog();
+    if ( !outport.connected() || !inport_position.connected()) {
+        log(Warning)<<"MotorCharacteristics: Output port or inport_position not connected!"<<endlog();
     }
 
     // Check Properties
@@ -101,23 +113,37 @@ bool MotorCharacteristics::startHook()
 
 void MotorCharacteristics::updateHook()
 {
-    // Read inputs
-    doubles input_current(N,0.0);
-    doubles input_position(N,0.0);
-    inport_current.read(input_current);
-    inport_position.read(input_position);
+    // Read position input
+    doubles position(N,0.0);
+    inport_position.read(position);
 
-    // Differentiate input_current and input_position
+    // Read and add all input torques
+    doubles torque(N,0.0);
+    for (uint j = 0; j < Nin; j++) {
+        doubles input_torque(N,0.0);
+        inports[j].read(input_torque);
+        for (uint i = 0; i < N; i++) {
+            torque[i]+= input_torque[i];
+        }
+    }
+
+    // Calculate desired Current
+    doubles current(N,0.0);
+    for (uint i = 0; i < N; i++) {
+        current[i] = torque[i]/Ke[i];
+    }
+
+    // Differentiate current and position
     determineDt();
     doubles current_dot(N,0.0);
     doubles velocity(N,0.0);
-    current_dot = calculatederivative_current(input_current);
-    velocity = calculatederivative_position(input_position);
+    current_dot = calculatederivative_current(current);
+    velocity = calculatederivative_position(position);
 
-    // Calculate Voltage - Eq 7- 8 from Electric Drives, An integrated Approach by Ned Mohan multiplied by voltage_gains to convert to PWM value
+    // Calculate Voltage - Eq 7- 8 from Electric Drives, An integrated Approach by Ned Mohan multiplied by Volt2PWM to convert to PWM value
     doubles voltage(N,0.0);
     for (uint i = 0; i < N; i++) {
-        voltage[i] = (Ke[i]*velocity[i]/gearratio[i] + Ra[i]*input_current[i] + La[i]*current_dot[i])*voltage_gains[i];
+        voltage[i] = (Ke[i]*velocity[i]/gearratio[i] + Ra[i]*current[i] + La[i]*current_dot[i])*Volt2PWM[i];
     }
 
     // Write Output 

@@ -1,0 +1,87 @@
+########################################################################
+#                                                                      #
+# Simple Open EtherCAT Master (SOEM) deployer file 		       		   #
+#                                                                      #
+#                                                                      #
+#                                                                      #
+#                                                                      #
+########################################################################
+
+#### IMPORT PACKAGE ####
+import("rtt_ros")
+import("rtt_rosnode")
+import("rtt_roscomm")
+import("soem_master")
+import("soem_beckhoff_drivers")
+import("tue_ethercat_drivers")
+import("amigo_hardware")
+import("amigo_force_controller")
+ros.import("rtt_control_components")
+
+#### DECLARATION OF PARAMETERS ####
+var double Ts = 0.02
+var double PI = 3.14159
+var double Lu = 0.32
+var double Ll = 0.28
+var double Lh = 0.2
+var double LuCOG = 0.213   
+var double LlCOG = 0.140
+var double LhCOG = 0.150
+
+loadComponent("RPERA_RAMP","SOURCES::RampSignal")
+setActivity("RPERA_RAMP",Ts,LowestPriority,ORO_SCHED_OTHER)
+RPERA_RAMP.vector_size 						= 7
+RPERA_RAMP.slope 							= array (0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+RPERA_RAMP.configure
+
+loadComponent("RPERA_SAT","DISCONTINUITIES::Saturation")
+setActivity("RPERA_SAT",0.0,LowestPriority,ORO_SCHED_OTHER)
+RPERA_SAT.vector_size 						= 7
+RPERA_SAT.lower_limit 						= array (	  -1.57,  0.0,-1.57,-1.57,   0.0, -1.57, 0.0, 0.0)
+RPERA_SAT.upper_limit 						= array (	  0.0, 1.57, 1.57,  1.57,  1.57, 0.0, 0.0)
+RPERA_SAT.configure
+
+loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
+setActivity("RPERA_GravityTorques",0.0,LowestPriority,ORO_SCHED_OTHER)
+RPERA_GravityTorques.RootLinkName			= "shoulder_mount_right"
+RPERA_GravityTorques.TipLinkName			= "hand_right"
+RPERA_GravityTorques.GravityVector			= array (		0.0,		0.0,	   -10.0)
+RPERA_GravityTorques.configure
+
+#loadComponent("RPERA_GravityTorquesU","ARM::GravityTorquesManual")
+#setActivity("RPERA_GravityTorquesU",0.0,LowestPriority,ORO_SCHED_OTHER)
+#RPERA_GravityTorquesU.nrJoints				= 7
+#RPERA_GravityTorquesU.joint_type			= strings(              "R",            "R",            "R",            "R",            "R",            "R",            "R")
+#RPERA_GravityTorquesU.joint_axis			= strings(              "X",            "Y",            "Z",            "Y",            "Z",            "Y",            "X")
+#RPERA_GravityTorquesU.rotation_axis			= strings(              "Z",             "",             "",             "",             "",             "",             "")
+#RPERA_GravityTorquesU.rotation_angle		= array (                PI,            0.0,            0.0,            0.0,            0.0,            0.0,            0.0)
+#RPERA_GravityTorquesU.translation_X			= array (               0.0,            0.0,            0.0,            0.0,            0.0,            0.0,            0.0)
+#RPERA_GravityTorquesU.translation_Y			= array (               0.0,            0.0,            0.0,            0.0,            0.0,            0.0,            0.0)
+#RPERA_GravityTorquesU.translation_Z			= array (               0.0,            0.0,            -Lu,            0.0,            -Ll,            0.0,            -Lh)
+#RPERA_GravityTorquesU.masses				= array (               0.0,            0.0,            2.8,            0.0,            0.8,            0.0,        	0.2)
+#RPERA_GravityTorquesU.COG_X					= array (               0.0,            0.0,            0.0,            0.0,            0.0,            0.0,            0.0)
+#RPERA_GravityTorquesU.COG_Y					= array (               0.0,            0.0,            0.0,            0.0,            0.0,            0.0,            0.0)
+#RPERA_GravityTorquesU.COG_Z					= array (               0.0,            0.0,     		-LuCOG,         0.0,     		-LlCOG,         0.0,     		-LhCOG)
+#RPERA_GravityTorquesU.GravityVector			= array (               0.0,            0.0,       		-10.0);
+#RPERA_GravityTorquesU.configure
+
+connect ("RPERA_RAMP.out",					"RPERA_SAT.in",					ConnPolicy() );
+connect ("RPERA_SAT.out",					"RPERA_GravityTorques.in",		ConnPolicy() );
+#connect ("RPERA_SAT.out",					"RPERA_GravityTorquesU.in",		ConnPolicy() );
+
+### Setting up tracing ###
+#loadComponent("RPERA_Tracing","Signal::Tracing")
+#setActivity("RPERA_Tracing",0.0,LowestPriority,ORO_SCHED_OTHER)
+#RPERA_Tracing.vector_sizes = array (7.0, 7.0)
+#RPERA_Tracing.buffersize = 3000;
+#RPERA_Tracing.filename = "/home/maxbaeten/ros/data/hardware_tracing/max/040814/PARSED3.dat"
+#RPERA_Tracing.Ts = Ts
+#RPERA_Tracing.configure
+#connect ("RPERA_SAT.out","RPERA_Tracing.in1", ConnPolicy() );
+#connect ("RPERA_GravityTorques.out","RPERA_Tracing.in2", ConnPolicy() );
+
+RPERA_GravityTorques.start()
+#RPERA_GravityTorquesU.start()
+RPERA_SAT.start()
+RPERA_RAMP.start()
+#RPERA_Tracing.start()

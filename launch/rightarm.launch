@@ -1,6 +1,7 @@
 <launch>
   <include file="$(find rtt_ros)/launch/deployer.launch">
     <arg name="DEPLOYER_ARGS" value="gnulinux
+    HARDWARE
     -s $(find amigo_force_controller)/ops/soem.ops
     -s $(find amigo_force_controller)/ops/right_arm_forcecontroller.ops
     "/>
