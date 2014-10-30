@@ -28,10 +28,10 @@ var double LuCOG = 0.213
 var double LlCOG = 0.140
 var double LhCOG = 0.150
 
-loadComponent("RPERA_RAMP","SOURCES::RampSignal")
+loadComponent("RPERA_RAMP","SOURCES::ConstantSignal")
 setActivity("RPERA_RAMP",Ts,LowestPriority,ORO_SCHED_OTHER)
 RPERA_RAMP.vector_size 						= 7
-RPERA_RAMP.slope 							= array (0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+RPERA_RAMP.value 							= array (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 RPERA_RAMP.configure
 
 loadComponent("RPERA_SAT","DISCONTINUITIES::Saturation")
@@ -45,7 +45,7 @@ loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
 setActivity("RPERA_GravityTorques",0.0,LowestPriority,ORO_SCHED_OTHER)
 RPERA_GravityTorques.RootLinkName			= "shoulder_mount_right"
 RPERA_GravityTorques.TipLinkName			= "hand_right"
-RPERA_GravityTorques.GravityVector			= array (		0.0,		0.0,	   -10.0)
+RPERA_GravityTorques.GravityVector			= array (		-10.0,		0.0,	   0.0)
 RPERA_GravityTorques.configure
 
 #loadComponent("RPERA_GravityTorquesU","ARM::GravityTorquesManual")
