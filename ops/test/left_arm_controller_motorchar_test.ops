@@ -48,14 +48,15 @@ var double MT_HM  				= 0.0030 ;# made up, does not matter for experiments
 var double MAXVOLT				= 24.0
 var double MAXPWM				= 1000.0
 var double VOLT2PWM				= MAXPWM/MAXVOLT
+var double PWM2VOLT				= MAXVOLT/MAXPWM
 var double KE_SM  				= 0.0259
 var double KE_S3  				= 0.0259
 var double KE_EM  				= 0.0234
 var double KE_WM  				= 0.0212
 var double KE_HM  				= 0.0212 ;# made up, does not matter for experiments
-var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0
-var double TermRes_SM	= 0.611;			var double TermRes_S3	= TermRes_SM; 		var double TermRes_EM	= 2.32;				var double TermRes_WM	= 21.5
-var double TermInd_SM	= 0.000119;	 		var double TermInd_S3	= TermInd_SM; 		var double TermInd_EM	= 0.000238; 		var double TermInd_WM	= 0.00137
+var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0; 		var double GR_HM		= 196.0/3249.0
+var double TermRes_SM	= 0.611;			var double TermRes_S3	= TermRes_SM; 		var double TermRes_EM	= 2.32;				var double TermRes_WM	= 21.5;				var double TermRes_HM	= TermRes_WM
+var double TermInd_SM	= 0.000119;	 		var double TermInd_S3	= TermInd_SM; 		var double TermInd_EM	= 0.000238; 		var double TermInd_WM	= 0.00137;			var double TermInd_HM	= TermInd_WM
 
  
 ### NameBodyPart ###
@@ -210,26 +211,34 @@ LPERA_Homing.homing_absPos					= ABSPOS
 LPERA_Homing.homing_forces					= array 	(0.0, 	0.0, 	0.0, 	0.0, 	0.0, 	0.0, 	0.0, 	0.0	)
 LPERA_Homing.configure
 
+var double CE2TO_SM		= 	(PWM2VOLT/TermRes_SM)*KE_SM
+var double CE2TO_S3		= 	(PWM2VOLT/TermRes_S3)*KE_S3
+var double CE2TO_EM		= 	(PWM2VOLT/TermRes_EM)*KE_EM
+var double CE2TO_WM		= 	(PWM2VOLT/TermRes_WM)*KE_WM
+var double CE2TO_HM		= 	(PWM2VOLT/TermRes_HM)*KE_HM
+
+
 ### ControlEffortToTorque - Calculates Desired torque from control output
 loadComponent("LPERA_ControlEffortToTorque","MATH::Gain")
 addPeer("Supervisor","LPERA_ControlEffortToTorque")
 setActivity("LPERA_ControlEffortToTorque",0.0,HighestPriority,ORO_SCHED_RT)
-LPERA_ControlEffortToTorque.vector_size		= N
-LPERA_ControlEffortToTorque.gain 			= array (	MT_SM/1024.0,	MT_SM/1024.0,	MT_S3/1024.0,	MT_EM/1024.0,	MT_EM/1024.0,	MT_WM/1024.0,	MT_WM/1024.0,	MT_HM/1024.0)
+LPERA_ControlEffortToTorque.vectorsize		= N
+LPERA_ControlEffortToTorque.gain 			= array (		CE2TO_SM,      	CE2TO_SM,      	CE2TO_S3,      	CE2TO_EM,      	CE2TO_EM,      	CE2TO_WM,      	CE2TO_WM,      	CE2TO_HM       )
 LPERA_ControlEffortToTorque.configure
 
 #### DECLARATION OF COMPONENTS ####
-loadComponent("MotorChar","FORCECONTROL::MotorCharacteristics")
-setActivity("MotorChar",TS,HighestPriority,ORO_SCHED_RT)
-MotorChar.TS 							= TS
-MotorChar.vector_size					= N
-MotorChar.NumberOfInports				= 1
-MotorChar.MotorVoltageConstant			= array (		KE_SM,      	KE_SM,      	KE_S3,      	KE_EM,      	KE_EM,      	KE_WM,      	KE_WM,      	KE_HM       )
-MotorChar.GearRatio 					= array (		GR_SM,      	GR_SM,      	GR_S3,      	GR_EM,      	GR_EM,      	GR_WM,      	GR_WM,      	GR_HM       )
-MotorChar.TerminalResistance			= array (		TermRes_SM,    	TermRes_SM,     TermRes_S3,     TermRes_EM,     TermRes_EM,     TermRes_WM,     TermRes_WM,     TermRes_HM  )
-MotorChar.ArmatureWindingInductance		= array (		TermInd_SM,     TermInd_SM,     TermInd_S3,     TermInd_EM,     TermInd_EM,     TermInd_WM,     TermInd_WM,     TermInd_HM  )
-MotorChar.Volt2PWM						= array (		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM 	)
-MotorChar.configure
+loadComponent("LPERA_MotorChar","FORCECONTROL::MotorCharacteristics")
+addPeer("Supervisor","LPERA_MotorChar")
+setActivity("LPERA_MotorChar",TS,HighestPriority,ORO_SCHED_RT)
+LPERA_MotorChar.TS 							= TS
+LPERA_MotorChar.vector_size					= N
+LPERA_MotorChar.NumberOfInports				= 1
+LPERA_MotorChar.MotorVoltageConstant		= array (		KE_SM,      	KE_SM,      	KE_S3,      	KE_EM,      	KE_EM,      	KE_WM,      	KE_WM,      	KE_HM       )
+LPERA_MotorChar.GearRatio 					= array (		GR_SM,      	GR_SM,      	GR_S3,      	GR_EM,      	GR_EM,      	GR_WM,      	GR_WM,      	GR_HM       )
+LPERA_MotorChar.TerminalResistance			= array (		TermRes_SM,    	TermRes_SM,     TermRes_S3,     TermRes_EM,     TermRes_EM,     TermRes_WM,     TermRes_WM,     TermRes_HM  )
+LPERA_MotorChar.ArmatureWindingInductance	= array (		TermInd_SM,     TermInd_SM,     TermInd_S3,     TermInd_EM,     TermInd_EM,     TermInd_WM,     TermInd_WM,     TermInd_HM  )
+LPERA_MotorChar.Volt2PWM					= array (		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM,		VOLT2PWM 	)
+LPERA_MotorChar.configure
 
 #### Diagnostics ###
 loadComponent("LPERA_Diagnostics","ROS::RosDiagnostics")
@@ -246,17 +255,18 @@ LPERA_Diagnostics.boolname1 				= "Error"
 
 ### Setting up tracing ###
 loadComponent("LPERA_Tracing","Signal::Tracing")
+addPeer("Supervisor","LPERA_Tracing")
 setActivity("LPERA_Tracing",0.0,HighestPriority,ORO_SCHED_RT)
 LPERA_Tracing.vector_sizes = array (8.0, 8.0, 8.0, 8.0, 8.0)
-LPERA_Tracing.buffersize =   131072;
-LPERA_Tracing.filename = "/home/maxbaeten/ros/data/hardware_tracing/max/011114/MotorCharTest1.dat"
+LPERA_Tracing.buffersize =   65536;
+LPERA_Tracing.filename = "/home/amigo/ros/data/hardware_tracing/max/011114/MotorCharTest1.dat"
 LPERA_Tracing.Ts = TS
 LPERA_Tracing.configure
 connect ("LPERA_ReferenceGenerator.posout",			"LPERA_Tracing.in1", 						ConnPolicy()) 		;# Reference
 connect ("LPERA_MotorToJointSpace.out",				"LPERA_Tracing.in2", 						ConnPolicy()) 		;# Position
 connect ("LPERA_JointToMotorSpace.out",				"LPERA_Tracing.in3", 						ConnPolicy()) 		;# Control effort neg feedback
 connect ("LPERA_ControlEffortToTorque.out",			"LPERA_Tracing.in4", 						ConnPolicy()) 		;# Control effort converted to control torque 
-connect ("MotorChar.out",							"LPERA_Tracing.in5", 						ConnPolicy()) 		;# Control output from MotorChar
+connect ("LPERA_MotorChar.out",						"LPERA_Tracing.in5", 						ConnPolicy()) 		;# Control output from MotorChar
 
 #### SET UP JOINTSTATE AGGREGATOR ####
 JointStateAggregator.addJointNames(JOINT_NAMES)
@@ -277,11 +287,10 @@ connect ("LPERA_ReadEncoders.out",					"LPERA_MotorToJointSpace.in", 				ConnPol
 connect ("LPERA_MotorToJointSpace.out",				"LPERA_Controller.pos_in", 					ConnPolicy() ); # Position JS
 connect ("LPERA_Controller.out",					"LPERA_JointToMotorSpace.in", 				ConnPolicy() ); # ControlEffort JS
 connect ("LPERA_JointToMotorSpace.out",				"LPERA_ControlEffortToTorque.in", 			ConnPolicy() );
-connect ("LPERA_ControlEffortToTorque.out",			"MotorChar.in1_ev",							ConnPolicy() );
-connect ("LPERA_MotorToJointSpace.out",				"MotorChar.in_position", 					ConnPolicy() );
-connect ("MotorChar.out",							"LPERA_AnalogOuts.in1", 					ConnPolicy() ); # ControlEffort MS
-
-connect ("LPERA_AnalogIns.out1",					"LPERA_ControlEffortToTorque.in", 			ConnPolicy() ); # TorqueSensor
+connect ("LPERA_ControlEffortToTorque.out",			"LPERA_MotorChar.in1_ev",					ConnPolicy() );
+connect ("LPERA_MotorToJointSpace.out",				"LPERA_MotorChar.in_position", 				ConnPolicy() );
+connect ("LPERA_MotorChar.out",						"LPERA_AnalogOuts.in1", 					ConnPolicy() ); # ControlEffort MS
+connect ("LPERA_AnalogIns.out1",					"LPERA_SensorTorques.voltage_in", 			ConnPolicy() ); # TorqueSensor
 
 ## References ##
 connect ("LPERA_ReadReferences.pos_out",			"LPERA_ReferenceGenerator.posin1", 			ConnPolicy() ); # Ref
@@ -337,6 +346,8 @@ Supervisor.AddAllwaysOnPeer(	"LPERA_WriteClippedJointAngles")
 Supervisor.AddAllwaysOnPeer(	"LPERA_MotorToJointSpace")
 Supervisor.AddAllwaysOnPeer(	"LPERA_JointToMotorSpace")
 Supervisor.AddAllwaysOnPeer(	"LPERA_Controller")
+Supervisor.AddAllwaysOnPeer(	"LPERA_ControlEffortToTorque")
+Supervisor.AddAllwaysOnPeer(	"LPERA_MotorChar")
 Supervisor.AddAllwaysOnPeer(	"LPERA_Tracing")
 
 Supervisor.AddHomingOnlyPeer(	"LPERA_Homing", 			BODYNUMBER)
