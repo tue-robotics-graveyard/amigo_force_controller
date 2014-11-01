@@ -158,44 +158,44 @@ void MotorCharacteristics::determineDt()
     return;
 }
 
-doubles MotorCharacteristics::calculatederivative_current(doubles diff_in)
+doubles MotorCharacteristics::calculatederivative_current(doubles diff_in_current)
 {
-    doubles diff_out(N,0.0);
+    doubles diff_out_current(N,0.0);
     //  Determine Derivative
     if (dt > Ts*0.9 && dt < Ts*1.1) {
       for (uint i = 0; i < N; i++) {
-        diff_out[i]  = b[0] * diff_in[i];
-        diff_out[i] += b[1] * previous_input_current[i];
-        diff_out[i] -= a[1] * previous_output_current[i];
+        diff_out_current[i]  = b[0] * diff_in_current[i];
+        diff_out_current[i] += b[1] * previous_input_current[i];
+        diff_out_current[i] -= a[1] * previous_output_current[i];
       }
     } else {
-      diff_out = previous_output_current;
+      diff_out_current = previous_output_current;
     }
 
-    previous_input_current  = diff_in;
-    previous_output_current = diff_out;
+    previous_input_current  = diff_in_current;
+    previous_output_current = diff_out_current;
 
-    return diff_out;
+    return diff_out_current;
 }
 
-doubles MotorCharacteristics::calculatederivative_position(doubles diff_in)
+doubles MotorCharacteristics::calculatederivative_position(doubles diff_in_position)
 {
-    doubles diff_out(N,0.0);
+    doubles diff_out_position(N,0.0);
     //  Determine Derivative
     if (dt > Ts*0.9 && dt < Ts*1.1) {
       for (uint i = 0; i < N; i++) {
-        diff_out[i]  = b[0] * diff_in[i];
-        diff_out[i] += b[1] * previous_input_position[i];
-        diff_out[i] -= a[1] * previous_output_position[i];
+        diff_out_position[i]  = b[0] * diff_in_position[i];
+        diff_out_position[i] += b[1] * previous_input_position[i];
+        diff_out_position[i] -= a[1] * previous_output_position[i];
       }
     } else {
-      diff_out = previous_output_position;
+      diff_out_position = previous_output_position;
     }
 
-    previous_input_position  = diff_in;
-    previous_output_position = diff_out;
+    previous_input_position  = diff_in_position;
+    previous_output_position = diff_out_position;
 
-    return diff_out;
+    return diff_out_position;
 }
 
 ORO_CREATE_COMPONENT(FORCECONTROL::MotorCharacteristics)

@@ -16,7 +16,7 @@ import("tue_ethercat_drivers")
 import("amigo_force_controller")
 
 #### DECLARATION OF PARAMETERS ####
-var double TS = 0.001
+var double TS 				= 0.001
 var double GEARRATIO 		= 8.0/343.0 ;## to do check param
 var double TWOPI 			= 2.0*3.141592
 var double ENCODERCOUNTS 	= 500.0*4.0
@@ -25,14 +25,20 @@ var uint ENCBITS			= 65536
 var uint N					= 1
 
 #### DECLARATION OF COMPONENTS ####
-loadComponent("I","SOURCES::SineWave")
-setActivity("I",TS,HighestPriority,ORO_SCHED_RT)
-I.vector_size		= N
-I.frequency 		= array(1.0)
-I.amplitude 		= array(1.0)
-I.phase 			= array(0.0)
-I.bias 				= array(1.0)
-I.configure
+#loadComponent("I","SOURCES::SineWave")
+#setActivity("I",TS,HighestPriority,ORO_SCHED_RT)
+#I.vector_size		= N
+#I.frequency 		= array(1.0)
+#I.amplitude 		= array(1.0)
+#I.phase 			= array(0.0)
+#I.bias 				= array(1.0)
+#I.configure
+
+loadComponent("T","SOURCES::ConstantSignal")
+setActivity("T",TS,HighestPriority,ORO_SCHED_RT)
+T.vector_size 		= N
+T.value				= array(0.25)
+T.configure
 
 #### DECLARATION OF COMPONENTS ####
 loadComponent("Wm","SOURCES::RampSignal")
@@ -42,15 +48,17 @@ Wm.slope 			= array(3.0)
 Wm.configure
 
 #### DECLARATION OF COMPONENTS ####
-loadComponent("CurrentFFW","FORCECONTROL::CurrentFFW")
-setActivity("CurrentFFW",TS,HighestPriority,ORO_SCHED_RT)
-CurrentFFW.Ts 							= TS
-CurrentFFW.N 							= N
-CurrentFFW.MotorVoltageConstant			= array (2.0)
-CurrentFFW.GearRatio 					= array (3.14)
-CurrentFFW.TerminalResistance			= array (0.3)
-CurrentFFW.ArmatureWindingInductance	= array (0.25)
-CurrentFFW.configure
+loadComponent("MotorChar","FORCECONTROL::MotorCharacteristics")
+setActivity("MotorChar",TS,HighestPriority,ORO_SCHED_RT)
+MotorChar.TS 							= TS
+MotorChar.vector_size					= N
+MotorChar.NumberOfInports				= 1
+MotorChar.MotorVoltageConstant			= array (0.25)
+MotorChar.GearRatio 					= array (3.14)
+MotorChar.TerminalResistance			= array (0.3)
+MotorChar.ArmatureWindingInductance		= array (2.0)
+MotorChar.Volt2PWM						= array (1.0)
+MotorChar.configure
 
 ### Setting up tracing ###
 loadComponent("Tracing","Signal::Tracing")
@@ -60,16 +68,16 @@ Tracing.buffersize =  25000;
 Tracing.filename = "/home/maxbaeten/ros/data/hardware_tracing/max/230914/singlemotortest1.dat"
 Tracing.Ts = TS
 Tracing.configure
-connect ("I.out","Tracing.in1", ConnPolicy()) 		;# Reference I
+connect ("T.out","Tracing.in1", ConnPolicy()) 		;# Reference T
 connect ("Wm.out","Tracing.in2", ConnPolicy()) 		;# Reference Wm
-connect ("CurrentFFW.out_voltage","Tracing.in3", ConnPolicy()) 		;# Control output
+connect ("MotorChar.out","Tracing.in3", ConnPolicy()) 		;# Control output
 
 #### DECLARATION OF CONECTIONS ####
-connect ("I.out","CurrentFFW.in_current", ConnPolicy()) 
-connect ("Wm.out","CurrentFFW.in_position", ConnPolicy()) 
+connect ("Wm.out","MotorChar.in1_ev", ConnPolicy()) 
+connect ("Wm.out","MotorChar.in_position", ConnPolicy()) 
 
 ### STARTING OF COMPONENTS ####
 Wm.start()
-I.start()
-CurrentFFW.start()
-Tracing.start()
+T.start()
+MotorChar.start()
+#Tracing.start()
