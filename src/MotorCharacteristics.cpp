@@ -154,7 +154,7 @@ void MotorCharacteristics::updateHook()
         voltage1[i] = (-Ke[i]*velocity[i]/gearratio[i] )*Volt2PWM[i];
         voltage2[i] = (Ra[i]*current[i])*Volt2PWM[i];
         voltage3[i] = (La[i]*current_dot[i])*Volt2PWM[i];
-        voltage[i] = (-Ke[i]*velocity[i]/gearratio[i] + Ra[i]*current[i] + La[i]*current_dot[i])*Volt2PWM[i];
+        voltage[i] = (-Ke[i]*velocity[i]/gearratio[i] + Ra[i]*current[i] )*Volt2PWM[i];
     }
 
     // Write Output 
