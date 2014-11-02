@@ -50,6 +50,9 @@ bool MotorCharacteristics::configureHook()
     }
 
     addEventPort( "in_position", inport_position );
+    addPort( "out1", outport1 );
+    addPort( "out2", outport2 );
+    addPort( "out3", outport3 );
     addPort( "out", outport );
 
     previous_input_current.resize(N);
@@ -141,13 +144,25 @@ void MotorCharacteristics::updateHook()
     velocity = calculatederivative_position(position);
 
     // Calculate Voltage - Eq 7- 8 from Electric Drives, An integrated Approach by Ned Mohan multiplied by Volt2PWM to convert to PWM value
+    doubles voltage1(N,0.0);
+    doubles voltage2(N,0.0);
+    doubles voltage3(N,0.0);
     doubles voltage(N,0.0);
+
+
     for (uint i = 0; i < N; i++) {
+        voltage1[i] = (Ke[i]*velocity[i]/gearratio[i] )*Volt2PWM[i];
+        voltage2[i] = (Ra[i]*current[i])*Volt2PWM[i];
+        voltage3[i] = (La[i]*current_dot[i])*Volt2PWM[i];
         voltage[i] = (Ke[i]*velocity[i]/gearratio[i] + Ra[i]*current[i] + La[i]*current_dot[i])*Volt2PWM[i];
     }
 
     // Write Output 
+    outport1.write(voltage1);
+    outport2.write(voltage2);
+    outport3.write(voltage3);
     outport.write(voltage);
+
 }
 
 void MotorCharacteristics::determineDt()

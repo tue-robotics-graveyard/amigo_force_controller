@@ -46,6 +46,9 @@ namespace FORCECONTROL
             // Input and output ports
             InputPort<doubles> inports[3];
             InputPort<doubles> inport_position;
+            OutputPort<doubles> outport1;
+            OutputPort<doubles> outport2;
+            OutputPort<doubles> outport3;
             OutputPort<doubles> outport;
 
             // global
