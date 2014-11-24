@@ -35,9 +35,6 @@ var double ENC2SI_EM			= TWOPI*GEARRATIO_EM/ENCODERCOUNTS_EM
 var double ENC2SI_WM			= TWOPI*GEARRATIO_WM/ENCODERCOUNTS_WM
 var double ENC2SI_HM 			= TWOPI*GEARRATIO_HM/ENCODERCOUNTS_HM
 var int N						= 8
-var int BODYNUMBER 				= 3
-var string BODYPARTNAME 		= "left_arm"
-var bool HOMEABLE 				= true
 var bool REQUIREHOMING   		= true
 var bool REQUIREGRIPPERHOMING   = false
 var double MT_SM  				= 0.0856
@@ -57,10 +54,16 @@ var double KE_HM  				= 0.0212 ;# made up, does not matter for experiments
 var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0; 		var double GR_HM		= 196.0/3249.0
 var double TermRes_SM	= 0.611;			var double TermRes_S3	= TermRes_SM; 		var double TermRes_EM	= 2.32;				var double TermRes_WM	= 21.5;				var double TermRes_HM	= TermRes_WM
 var double TermInd_SM	= 0.000119;	 		var double TermInd_S3	= TermInd_SM; 		var double TermInd_EM	= 0.000238; 		var double TermInd_WM	= 0.00137;			var double TermInd_HM	= TermInd_WM
+var bool REQUIREHOMING   		= true
+var bool REQUIREGRIPPERHOMING   = false
+var int BODYNUMBER 				= 4
+var string BODYPARTNAME 		= "right_arm"
+var bool HOMEABLE 				= true
+var bool HOMINGOBLIGATORY		= false
+var bool RESETTABLE				= true
 
- 
-### NameBodyPart ###
-Supervisor.NameBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE)
+### AddBodyPart ###
+Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RESETTABLE)
 
 #### HIGH PRIORITY COMPONENTS ####
 ### Read reference joint angles ###

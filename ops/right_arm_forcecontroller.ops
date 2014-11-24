@@ -20,9 +20,6 @@ var double MAXVOLT				= 24.0
 var double MAXPWM				= 1000.0
 var double VOLT2PWM				= MAXPWM/MAXVOLT
 var int N						= 7
-var int BODYNUMBER 				= 4
-var string BODYNAME 			= "right_arm"
-var bool HOMEABLE 				= false
 # Shoulder Motor 							# Shoulder motor q3 						# Elbow motor q3							# Wrist motor q3
 var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0
 var double ECNTS_SM		= 256.0*4.0;		var double ECNTS_S3		= 256.0*4.0;		var double ECNTS_EM		= 500.0*4.0;		var double ECNTS_WM		= 128.0*4.0
@@ -33,9 +30,14 @@ var double Bq_SM 		= 1512900.0;		var double Bq_S3 		= 1512900.0;		var double Bq_
 var double sBq_SM 		= Bq_SM/4.0;		var double sBq_S3 		= Bq_S3/4.0;		var double sBq_EM 		= Bq_EM/4.0; 		var double sBq_WM 		= Bq_WM/4.0;
 var double K_SM			= 1.0;				var double K_S3			= 1.0;				var double K_EM			= 1.0;				var double K_WM			= 1.0;
 var double D_SM			= 1.0;				var double D_S3			= 1.0;				var double D_EM			= 1.0;				var double D_WM			= 1.0;
- 
-#### NAMEBODYPART ####
-Supervisor.NameBodyPart( BODYNUMBER, BODYNAME, HOMEABLE)
+var int BODYNUMBER 				= 4
+var string BODYPARTNAME 		= "right_arm"
+var bool HOMEABLE 				= true
+var bool HOMINGOBLIGATORY		= false
+var bool RESETTABLE				= true
+
+### AddBodyPart ###
+Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RESETTABLE)
 
 #### SET UP JOINTSTATE AGGREGATOR ####
 JointStateAggregator.addJointNames(JOINT_NAMES)
