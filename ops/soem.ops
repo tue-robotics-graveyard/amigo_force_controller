@@ -9,22 +9,15 @@
 
 #### IMPORT PACKAGE ####
 import("rtt_ros")
-import("rtt_rosnode")
-import("rtt_roscomm")
-import("soem_master")
-import("soem_beckhoff_drivers")
-import("tue_ethercat_drivers")
-import("amigo_hardware")
-import("amigo_force_controller")
-ros.import("rtt_control_components")
+ros.import("amigo_force_controller")
 
 #### DECLARATION OF PARAMETERS ####
 var double TS = 0.001
-var string DIGITAL_OUTS_SLAVE = "Soem.Slave_1003"
-var string ANALOG_OUTS_SLAVE = "Soem.Slave_1004"
-var string RIGHT_ARM_SHOULDER = "Soem.Slave_1005"
-var string RIGHT_ARM_UPPERARM = "Soem.Slave_1006"
-var string RIGHT_ARM_LOWERARM = "Soem.Slave_1007"
+var string DIGITAL_OUTS_SLAVE 	= "Soem.Slave_1003"
+var string ANALOG_OUTS_SLAVE 	= "Soem.Slave_1004"
+var string RIGHT_ARM_SHOULDER 	= "Soem.Slave_1005"
+var string RIGHT_ARM_UPPERARM 	= "Soem.Slave_1006"
+var string RIGHT_ARM_LOWERARM 	= "Soem.Slave_1007"
 
 #### MAKING PARAMETERS GLOBAL ####
 loadService("HARDWARE","os")
@@ -32,37 +25,53 @@ os.setenv("RIGHT_ARM_SHOULDER",RIGHT_ARM_SHOULDER)
 os.setenv("RIGHT_ARM_UPPERARM",RIGHT_ARM_UPPERARM)
 os.setenv("RIGHT_ARM_LOWERARM",RIGHT_ARM_LOWERARM)
 
+#### LOAD SUPERVISOR ###
+loadComponent("Supervisor","SUPERVISORY::Supervisor")
+Supervisor.configure
+setActivity("Supervisor",0.04,HighestPriority,ORO_SCHED_RT)
+stream("Supervisor.rosemergency", ros.topic("/amigo/emergency_switch"))
+stream("Supervisor.rosshutdown", ros.topic("/amigo/etherCAT_shutdown")); 
+stream("Supervisor.rosetherCATenabled", ros.topic("/amigo/etherCAT_enabled")); 
+stream("Supervisor.hardware_status", ros.topic("/amigo/hardware_status"));
+stream("Supervisor.dashboardCmd", ros.topic("/amigo/dashboard_ctrlcmds"));
+
 #### LOAD JOINTSTATEAGGREGATOR ####
 loadComponent("JointStateAggregator","ROS::JointStateAggregator")
+addPeer("Supervisor","JointStateAggregator")
 setActivity("JointStateAggregator",0.02,LowestPriority, ORO_SCHED_OTHER)
 JointStateAggregator.configure
 stream("JointStateAggregator.out", ros.topic("/amigo/joint_states"))
 
 ### LOAD SOEM COMPONENT FOR ETHERCAT COMMUNICATION ###
 loadComponent("Soem","soem_master::SoemMasterComponent")
+addPeer("Supervisor","Soem")
 Soem.configure
 setActivity("Soem",TS,HighestPriority,ORO_SCHED_RT)
+connect ("Soem.Slave_1005.encoder1", "Supervisor.serialRunning", ConnPolicy() )
 
 #### LOAD COMPONENT TO ENABLE ANALOG OUTS PERA ###
 loadComponent("RPERA_AnalogOuts","SOEM::AnalogOutsGeneric")
+addPeer("Supervisor","RPERA_AnalogOuts")
 setActivity("RPERA_AnalogOuts",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_AnalogOuts.numberofinports    				= 1
-RPERA_AnalogOuts.numberofoutports    				= 3
-RPERA_AnalogOuts.input_sizes 						= array (7.0)
-RPERA_AnalogOuts.output_sizes 						= array (3.0, 3.0, 3.0)
-RPERA_AnalogOuts.output_positions 					= array (1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0)
+RPERA_AnalogOuts.numberofoutports    				= 4
+RPERA_AnalogOuts.input_sizes 						= array (8.0)
+RPERA_AnalogOuts.output_sizes 						= array (8.0, 3.0, 3.0, 3.0)
+RPERA_AnalogOuts.output_positions 					= array (1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,		0.0, 0.0, 0.0,		0.0, 0.0, 0.0,		1.0, 1.0, 1.0)
 RPERA_AnalogOuts.configure
-connect ("RPERA_AnalogOuts.out1",RIGHT_ARM_SHOULDER+".pwmDutyMotors", ConnPolicy() );
-connect ("RPERA_AnalogOuts.out2",RIGHT_ARM_UPPERARM+".pwmDutyMotors", ConnPolicy() );
-connect ("RPERA_AnalogOuts.out3",RIGHT_ARM_LOWERARM+".pwmDutyMotors", ConnPolicy() );
+connect ("RPERA_AnalogOuts.out1",ANALOG_OUTS_SLAVE+".values", ConnPolicy() );
+connect ("RPERA_AnalogOuts.out2",RIGHT_ARM_SHOULDER+".pwmDutyMotors", ConnPolicy() );
+connect ("RPERA_AnalogOuts.out3",RIGHT_ARM_UPPERARM+".pwmDutyMotors", ConnPolicy() );
+connect ("RPERA_AnalogOuts.out4",RIGHT_ARM_LOWERARM+".pwmDutyMotors", ConnPolicy() );
 
 #### LOAD COMPONENT TO ENABLE ANALOG INS PERA ###
 loadComponent("RPERA_AnalogIns","SOEM::AnalogInsGeneric")
+addPeer("Supervisor","RPERA_AnalogIns")
 setActivity("RPERA_AnalogIns",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_AnalogIns.numberofinports    					= 6
 RPERA_AnalogIns.numberofoutports    				= 2
 RPERA_AnalogIns.input_sizes 						= array (3.0, 3.0, 3.0, 3.0, 3.0, 3.0)
-RPERA_AnalogIns.input_positions						= array (1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0)
+RPERA_AnalogIns.input_positions						= array (1.0, 1.0, 0.0,		1.0, 1.0, 1.0,		 1.0, 1.0, 0.0,		 1.0, 1.0, 0.0,		 1.0, 1.0, 1.0,		 1.0, 1.0, 0.0)
 RPERA_AnalogIns.output_sizes 						= array (7.0, 7.0)
 RPERA_AnalogIns.direct_to_ROS 						= false
 RPERA_AnalogIns.configure
@@ -73,15 +82,17 @@ connect (RIGHT_ARM_SHOULDER+".positionSensors","RPERA_AnalogIns.in4", ConnPolicy
 connect (RIGHT_ARM_UPPERARM+".positionSensors","RPERA_AnalogIns.in5", ConnPolicy() )  
 connect (RIGHT_ARM_LOWERARM+".positionSensors","RPERA_AnalogIns.in6", ConnPolicy() )
 
-#### LOAD COMPONENT TO ENABLE DIGITAL OUTS 2 (Slave_100c) ###
+#### LOAD COMPONENT TO ENABLE DIGITAL OUTS ###
 loadComponent("DigitalOuts","SOEM::DigitalOuts")
-connect ("DigitalOuts.digital_out",DIGITAL_OUTS_SLAVE+".bits", ConnPolicy() )
+addPeer("Supervisor","DigitalOuts")
 DigitalOuts.configure
 setActivity("DigitalOuts",0.0,HighestPriority/2,ORO_SCHED_RT)
+connect ("DigitalOuts.digital_out",DIGITAL_OUTS_SLAVE+".bits", ConnPolicy() )
 
 #### START COMPONENTS ####
-JointStateAggregator.start()
-RPERA_AnalogOuts.start()
-DigitalOuts.start()
-Soem.start()
-RPERA_AnalogIns.start()
+Supervisor.AddAllwaysOnPeer ("JointStateAggregator")
+Supervisor.AddAllwaysOnPeer ("RPERA_AnalogOuts")
+Supervisor.AddAllwaysOnPeer ("DigitalOuts")
+Supervisor.AddAllwaysOnPeer ("Soem")
+Supervisor.AddAllwaysOnPeer ("RPERA_AnalogIns")
+Supervisor.start()
