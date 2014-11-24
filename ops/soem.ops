@@ -35,6 +35,10 @@ stream("Supervisor.rosetherCATenabled", ros.topic("/amigo/etherCAT_enabled"));
 stream("Supervisor.hardware_status", ros.topic("/amigo/hardware_status"));
 stream("Supervisor.dashboardCmd", ros.topic("/amigo/dashboard_ctrlcmds"));
 
+#### Create Robot Object ####
+var strings DEFAULT_PART_NAMES = strings("base","spindle","left_arm", "right_arm", "head")
+Supervisor.CreateRobotObject("amigo", DEFAULT_PART_NAMES)
+
 #### LOAD JOINTSTATEAGGREGATOR ####
 loadComponent("JointStateAggregator","ROS::JointStateAggregator")
 addPeer("Supervisor","JointStateAggregator")
