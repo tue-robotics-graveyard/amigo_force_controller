@@ -60,7 +60,7 @@ RPERA_ReadReferences.referenceFunction4     = array (   0.0,    0.0,    0.0,    
 RPERA_ReadReferences.referenceFunction5     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,   -1.0,    0.0,    1.0,    0.0)
 RPERA_ReadReferences.referenceFunction6     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
 RPERA_ReadReferences.referenceFunction7     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-RPERA_ReadReferences.timeFunction           = array (   3.0,    6.0,    9.0,   12.0,   15.0, 18.0,   21.0,   24.0,   27.0,   30.0, 33.0,   36.0,   39.0,   42.0,   45.0,   48.0)
+RPERA_ReadReferences.timeFunction           = array (   5.0,    10.0,   15.0,   20.0,   25.0, 30.0,   35.0,   40.0,   45.0,   50.0, 55.0,   60.0,   65.0,   70.0,   75.0,   80.0)
 
 ### Motor to joint angles ###
 loadComponent("RPERA_MotorToJointSpace","MATH::MatrixTransform")
@@ -89,8 +89,8 @@ RPERA_ReferenceGenerator.InterpolatorDt 	= TS
 RPERA_ReferenceGenerator.InterpolatorEps	= 1.0
 RPERA_ReferenceGenerator.minPosition		= LOWERJOINTLIMIT
 RPERA_ReferenceGenerator.maxPosition		= UPPERJOINTLIMIT
-RPERA_ReferenceGenerator.maxVelocity		= array (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 10.0)
-RPERA_ReferenceGenerator.maxAcceleration	= array (4.2, 4.2, 4.2, 4.2, 4.2, 0.5, 0.5, 100.0)
+RPERA_ReferenceGenerator.maxVelocity		= array (0.4, 0.4, 0.6, 0.8, 0.8, 1.0, 1.0, 10.0)
+RPERA_ReferenceGenerator.maxAcceleration	= array (0.2, 0.2, 0.3, 0.5, 0.5, 0.5, 0.5, 100.0)
 RPERA_ReferenceGenerator.configure
 
 ### LOAD READENCODERS
@@ -220,14 +220,15 @@ RPERA_Diagnostics.boolname1 				= "Error"
 loadComponent("Tracing","Signal::Tracing")
 addPeer("Supervisor","Tracing")
 setActivity("Tracing",0.0,HighestPriority,ORO_SCHED_RT)
-Tracing.vector_sizes = array (8.0, 8.0, 8.0)
-Tracing.buffersize =  52000;
-Tracing.filename = "/home/amigo/ros/data/hardware_tracing/max/frictionexp/Friction_q12345.dat"
+Tracing.vector_sizes = array (8.0, 8.0, 8.0, 8.0)
+Tracing.buffersize =  85000;
+Tracing.filename = "/home/amigo/ros/data/hardware_tracing/max/frictionexp/TorqueRq12345.dat"
 Tracing.Ts = TS
 Tracing.configure
-connect ("RPERA_ReferenceGenerator.posout",         "Tracing.in1",                              ConnPolicy())         ;# Ref
-connect ("RPERA_Controller.jointErrors",            "Tracing.in2",                              ConnPolicy())         ;# Error
-connect ("RPERA_Controller.out",                    "Tracing.in3",                              ConnPolicy())         ;# Controller Output
+connect ("RPERA_ReferenceGenerator.posout",         "Tracing.in1",                              ConnPolicy())         ;# Reference
+connect ("RPERA_Controller.out",            		"Tracing.in2",                              ConnPolicy())         ;# Control Output
+connect ("RPERA_AnalogIns.out1",                    "Tracing.in3",                              ConnPolicy())         ;# Torque Sensor Output
+connect ("RPERA_SensorTorques.measured_torques_out","Tracing.in4",                              ConnPolicy())         ;# Sensor torques output 
 
 #### SET UP JOINTSTATE AGGREGATOR ####
 JointStateAggregator.addJointNames(JOINT_NAMES)
