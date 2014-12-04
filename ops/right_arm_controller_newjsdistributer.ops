@@ -45,30 +45,7 @@ var bool RESETTABLE				= true
 
 ### AddBodyPart ###
 Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RESETTABLE)
-
-#### HIGH PRIORITY COMPONENTS ####
-### Read reference joint angles ###
-loadComponent("RPERA_ReadReferences","ROS::JointStateToDoubles")
-addPeer("Supervisor","RPERA_ReadReferences")
-setActivity("RPERA_ReadReferences",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_ReadReferences.vector_size 			= 7
-RPERA_ReadReferences.configure
-
-#### HIGH PRIORITY COMPONENTS ####
-### Read reference joint angles ###
-#loadComponent("RPERA_ReadReferences","ROS::BenchmarkReference")
-#addPeer("Supervisor","RPERA_ReadReferences")
-#setActivity("RPERA_ReadReferences",TS,HighestPriority,ORO_SCHED_RT)
-#RPERA_ReadReferences.vector_size 			= 7
-#RPERA_ReadReferences.configure
-#RPERA_ReadReferences.referenceFunction1     = array (  -1.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-#RPERA_ReadReferences.referenceFunction2     = array (   0.0,    0.0,   -1.0,    0.0,    1.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-#RPERA_ReadReferences.referenceFunction3     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,   -1.0,    0.0,    1.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-#RPERA_ReadReferences.referenceFunction4     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  1.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-#RPERA_ReadReferences.referenceFunction5     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,   -1.0,    0.0,    1.0,    0.0)
-#RPERA_ReadReferences.referenceFunction6     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-#RPERA_ReadReferences.referenceFunction7     = array (   0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0)
-#RPERA_ReadReferences.timeFunction           = array (   5.0,    10.0,   15.0,   20.0,   25.0, 30.0,   35.0,   40.0,   45.0,   50.0, 55.0,   60.0,   65.0,   70.0,   75.0,   80.0)
+JointStateDistributor.AddBodyPart(BODYNUMBER, JOINT_NAMES)
 
 ### Motor to joint angles ###
 loadComponent("RPERA_MotorToJointSpace","MATH::MatrixTransform")
@@ -260,7 +237,7 @@ connect ("RPERA_JointToMotorSpace.out",				"RPERA_AnalogOuts.in1", 					ConnPoli
 connect ("RPERA_AnalogIns.out1",					"RPERA_SensorTorques.voltage_in", 			ConnPolicy() ); # TorqueSensor
 
 ## References ##
-connect ("RPERA_ReadReferences.pos_out",			"RPERA_ReferenceGenerator.posin1", 			ConnPolicy() ); # Ref
+connect ("JointStateDistributor.pos_out4",			"RPERA_ReferenceGenerator.posin1", 			ConnPolicy() ); # Ref
 connect ("RPERA_GripperControl.gripper_ref",		"RPERA_ReferenceGenerator.posin2",			ConnPolicy() ); # Gripper Ref
 connect ("RPERA_ReferenceGenerator.posout",			"RPERA_Controller.ref_in", 					ConnPolicy() ); # InterpolatedReference 
 connect ("RPERA_MotorToJointSpace.out",				"RPERA_ReferenceGenerator.initial_pos", 	ConnPolicy() ); # Initial position
@@ -293,14 +270,13 @@ connect ("RPERA_Homing.refout1",					"RPERA_ReferenceGenerator.posin1", 			ConnP
 connect ("RPERA_Homing.refout2",					"RPERA_ReferenceGenerator.posin2", 			ConnPolicy() ); # Reference
 
 ## Diagnostics ##
-connect ("RPERA_ReadReferences.pos_out", 			"RPERA_Diagnostics.vec1", 					ConnPolicy() ); # Reference
+connect ("JointStateDistributor.pos_out4", 			"RPERA_Diagnostics.vec1", 					ConnPolicy() ); # Reference
 connect ("RPERA_Controller.jointErrors",			"RPERA_Diagnostics.vec2", 					ConnPolicy() ); # JointErrors
 connect ("RPERA_Controller.out", 					"RPERA_Diagnostics.vec3", 					ConnPolicy() ); # ControlEffort
 connect ("RPERA_Safety.error",						"RPERA_Diagnostics.bool1", 					ConnPolicy() ); # Enable
 
 #### CONNECT ROS STREAMS ####
 stream ("RPERA_WriteClippedJointAngles.out", 		ros.topic("/amigo/right_arm/measurements"))
-stream ("RPERA_ReadReferences.in", 					ros.topic("/amigo/right_arm/references"))
 stream ("RPERA_GripperControl.gripper_measurement", ros.topic("/amigo/right_gripper/measurements"))
 stream ("RPERA_GripperControl.gripper_command", 	ros.topic("/amigo/right_gripper/references"))
 stream ("RPERA_Diagnostics.diagnostics", 			ros.topic("/diagnostics"));
@@ -313,10 +289,8 @@ Supervisor.AddAllwaysOnPeer(	"RPERA_WriteClippedJointAngles")
 Supervisor.AddAllwaysOnPeer(	"RPERA_MotorToJointSpace")
 Supervisor.AddAllwaysOnPeer(	"RPERA_JointToMotorSpace")
 Supervisor.AddAllwaysOnPeer(	"RPERA_Controller")
-
 Supervisor.AddHomingOnlyPeer(	"RPERA_Homing", 			BODYNUMBER)
 
-Supervisor.AddOpOnlyPeer(		"RPERA_ReadReferences", 	BODYNUMBER)
 
 Supervisor.AddEnabledPeer(		"RPERA_SensorTorques", 		BODYNUMBER)
 Supervisor.AddEnabledPeer(		"RPERA_GripperControl",		BODYNUMBER)
