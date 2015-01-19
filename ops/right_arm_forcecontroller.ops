@@ -121,12 +121,12 @@ RPERA_TorqueFeedback.MotorInertiaSubDiagonal				= array( 	Bq_SM,		0.0,		0.0, 		B
 RPERA_TorqueFeedback.ScaledMotorInertiaSuperDiagonal		= array( 	sBq_SM,		0.0,		0.0,		sBq_EM,		0.0,		sBq_WM		)
 RPERA_TorqueFeedback.ScaledMotorInertiaDiagonal				= array( 	sBq_SM,   	sBq_SM,		sBq_S3,		sBq_EM, 	sBq_EM,		sBq_WM, 	sBq_WM		)
 RPERA_TorqueFeedback.ScaledMotorInertiaSubDiagonal			= array( 	sBq_SM,		0.0,		0.0, 		sBq_EM,		0.0,		sBq_WM		)
-RPERA_TorqueFeedback.DampingSuperDiagonal					= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0			)
-RPERA_TorqueFeedback.DampingDiagonal						= array( 	K_SM,		K_SM,		K_S3,		K_EM,		K_EM,		K_WM,		K_WM		)
-RPERA_TorqueFeedback.DampingSubDiagonal						= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0			)
 RPERA_TorqueFeedback.StiffnessSuperDiagonal					= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0			)
-RPERA_TorqueFeedback.StiffnessDiagonal						= array( 	D_SM,		D_SM,		D_S3,		D_EM,		D_EM,		D_WM,		D_WM		)
+RPERA_TorqueFeedback.StiffnessDiagonal						= array( 	K_SM,		K_SM,		K_S3,		K_EM,		K_EM,		K_WM,		K_WM		)
 RPERA_TorqueFeedback.StiffnessSubDiagonal					= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0			)
+RPERA_TorqueFeedback.DampingSuperDiagonal					= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0			)
+RPERA_TorqueFeedback.DampingDiagonal						= array( 	D_SM,		D_SM,		D_S3,		D_EM,		D_EM,		D_WM,		D_WM		)
+RPERA_TorqueFeedback.DampingSubDiagonal						= array( 	0.0,		0.0,		0.0, 		0.0,		0.0,		0.0			)
 RPERA_TorqueFeedback.configure
 
 ### FRICTIONTORQUES - Calculates Friction

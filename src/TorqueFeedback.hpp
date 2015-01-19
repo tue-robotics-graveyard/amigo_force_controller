@@ -39,6 +39,8 @@ namespace FORCECONTROL
 			doubles input_u;
 			doubles input_tau;
 			doubles input_taudot;
+			doubles input_taug;
+			doubles input_tauf;		
 			doubles output;
 
 			doubles MotorInertiaSuperDiagonal, MotorInertiaDiagonal, MotorInertiaSubDiagonal;
@@ -57,6 +59,8 @@ namespace FORCECONTROL
 			InputPort<doubles> inport_u;
 			InputPort<doubles> inport_tau;
 			InputPort<doubles> inport_taudot;
+			InputPort<doubles> inport_tauf;
+			InputPort<doubles> inport_taug;
 			OutputPort<doubles> outport;
 
 			TorqueFeedback(const string& name);

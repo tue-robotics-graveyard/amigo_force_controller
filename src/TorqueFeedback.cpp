@@ -26,9 +26,11 @@ using namespace FORCECONTROL;
 TorqueFeedback::TorqueFeedback(const string& name) : TaskContext(name, PreOperational)
 {
     // Adding ports
-    addEventPort( "in_u", inport_u );
+    addPort( "in_u", inport_u );
     addEventPort( "in_tau", inport_tau );
-    addEventPort( "in_taudot", inport_taudot );
+    addPort( "in_taudot", inport_taudot );
+    addPort( "in_tauf", inport_tauf );
+    addPort( "in_taug", inport_taug );
     addPort( "out", outport );
 
     // Adding properties
@@ -55,6 +57,8 @@ bool TorqueFeedback::configureHook()
     input_u.assign(N,0.0);
     input_tau.assign(N,0.0);
     input_taudot.assign(N,0.0);
+    input_tauf.assign(N,0.0);
+    input_taug.assign(N,0.0);
     output.assign(N,0.0);
     
     // declaration of input, intermediate and output vectors
@@ -140,13 +144,12 @@ bool TorqueFeedback::startHook()
  
 void TorqueFeedback::updateHook()
 {
-    // Read input doubles
-    if ( !inport_u.read(input_u) == NewData ) {
-        log(Error)<<"TorqueFeedback: updateHook() was triggered while no newdata on inputPort! This should be impossible for eventtriggered component"<<endlog();
-        return;
-    }
+    // Read input
+	inport_u.read(input_u);
     inport_tau.read(input_tau);
     inport_taudot.read(input_taudot);
+    inport_tauf.read(input_tauf);
+    inport_taug.read(input_taug);
 
     // Convert doubles to vectors
     for ( uint i = 0; i < N; i++ ) {
@@ -158,9 +161,9 @@ void TorqueFeedback::updateHook()
     // Calculate Tau_m
     Tau_m = BBtinv*u + IMinBBtinv * (tau + DKinv*taudot);
 
-    // Convert vector to doubles
+    // Convert vector to doubles and add the received tau_f and tau_g
     for ( uint i = 0; i < N; i++ ) {
-        output[i] = Tau_m[i];
+        output[i] = Tau_m[i] + input_tauf[i] + input_taug[i];
     }
 
     // Write output doubles
