@@ -71,12 +71,15 @@ bool TorqueFeedback::configureHook()
 	DKinv.resize(N,N);
 	BBtinv.resize(N,N);
 	IMinBBtinv.resize(N,N);
+	
+	cntr = 0;
     
     return true;
 }
 
 bool TorqueFeedback::startHook()
 {
+
     // port connection checks
     if ( ( !inport_u.connected() ) || ( !inport_tau.connected() ) || ( !inport_taudot.connected() ) ) {
         log(Error)<<"TorqueFeedback: One of the inports is not connected: (in_u, in_tau, in_taudot) !"<<endlog();
@@ -87,30 +90,33 @@ bool TorqueFeedback::startHook()
         log(Error)<<"TorqueFeedback: Outport not connected!"<<endlog();
         return false;
     }
-
+    
     // check vector input of the four input matrices:  MotorInertia, ScaledMotorInertia, Damping, Stiffness
-    if (( MotorInertiaSuperDiagonal.size() != N ) || ( MotorInertiaDiagonal.size() != ( N - 1 ) ) || ( MotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
+    if (( MotorInertiaSuperDiagonal.size() != ( N - 1 ) ) || ( MotorInertiaDiagonal.size() != N ) || ( MotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
         log(Error)<<"TorqueFeedback: One of the input vectors of the MotorInertia Matrix has a wrong size"<<endlog();
         return false;
     }
 
-    if (( ScaledMotorInertiaSuperDiagonal.size() != N ) || ( ScaledMotorInertiaDiagonal.size() != ( N - 1 ) ) || ( ScaledMotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
+    if (( ScaledMotorInertiaSuperDiagonal.size() != ( N - 1 ) ) || ( ScaledMotorInertiaDiagonal.size() != N ) || ( ScaledMotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
         log(Error)<<"TorqueFeedback: One of the input vectors of the ScaledMotorInertia Matrix has a wrong size"<<endlog();
         return false;
     }
 
-    if (( DampingSuperDiagonal.size() != N ) || ( DampingDiagonal.size() != ( N - 1 ) ) || ( DampingSubDiagonal.size() != ( N - 1 )  ) ) {
+    if (( DampingSuperDiagonal.size() != ( N - 1 ) ) || ( DampingDiagonal.size() != N ) || ( DampingSubDiagonal.size() != ( N - 1 )  ) ) {
         log(Error)<<"TorqueFeedback: One of the input vectors of the Damping Matrix has a wrong size"<<endlog();
         return false;
     }
-
-    if (( StiffnessSuperDiagonal.size() != N ) || ( StiffnessDiagonal.size() != ( N - 1 ) ) || ( StiffnessSubDiagonal.size() != ( N - 1 )  ) ) {
+    
+    if (( StiffnessSuperDiagonal.size() != ( N - 1 ) ) || ( StiffnessDiagonal.size() != N ) || ( StiffnessSubDiagonal.size() != ( N - 1 )  ) ) {
         log(Error)<<"TorqueFeedback: One of the input vectors of the Stiffness Matrix has a wrong size"<<endlog();
         return false;
     }
-
+    
     // Declare input Matrices and fill in (sub/super) diagonals
-    Eigen::MatrixXd B, Bt, D, K;
+    Eigen::MatrixXd B(N,N);
+    Eigen::MatrixXd Bt(N,N);
+    Eigen::MatrixXd D(N,N);
+    Eigen::MatrixXd K(N,N);
     
     // Filling in (Sub/Super) Diagonals
     for ( uint i = 0; i < N; i++ ) { 
@@ -119,6 +125,7 @@ bool TorqueFeedback::startHook()
         D(i,i) = DampingDiagonal[i];
         K(i,i) = StiffnessDiagonal[i];
     }
+        
     for ( uint i = 0; i < ( N - 1 ) ; i++ ) {
         B(i,(i+1)) = MotorInertiaSuperDiagonal[i];
         Bt(i,(i+1)) = ScaledMotorInertiaSuperDiagonal[i];
@@ -129,7 +136,7 @@ bool TorqueFeedback::startHook()
         D((i+1),i) = DampingSubDiagonal[i];
         K((i+1),i) = StiffnessSubDiagonal[i];
     }
-
+    
     // Calculate constant matrices DKinv, BBt_inv, IdentityMinBBt_inv
     Eigen::MatrixXd I;
     I.setIdentity(N,N);
@@ -137,20 +144,19 @@ bool TorqueFeedback::startHook()
     BBtinv = B * Bt.inverse();
     IMinBBtinv = (I - (BBtinv));
 
-	log(Warning)<<"TorqueFeedback: configureHook() executed properly!"<<endlog();
-	
     return true;
 } 
  
 void TorqueFeedback::updateHook()
 {
+
     // Read input
 	inport_u.read(input_u);
     inport_tau.read(input_tau);
     inport_taudot.read(input_taudot);
     inport_tauf.read(input_tauf);
     inport_taug.read(input_taug);
-
+    
     // Convert doubles to vectors
     for ( uint i = 0; i < N; i++ ) {
         u[i] = input_u[i];
@@ -158,14 +164,22 @@ void TorqueFeedback::updateHook()
         taudot[i] = input_taudot[i];
     }
 
+
+	
     // Calculate Tau_m
     Tau_m = BBtinv*u + IMinBBtinv * (tau + DKinv*taudot);
+    
+    if (cntr>1000) {
+		cntr = 0;
+		log(Warning)<<"TorqueFeedback: Tau_m[0] = " << Tau_m[0] << "  u[0] = " << u[0] << "  tau[0] = " << tau[0] << "  taudot[0] = " << taudot[0] << "!"<<endlog();
+	}
+	cntr++;    
 
     // Convert vector to doubles and add the received tau_f and tau_g
     for ( uint i = 0; i < N; i++ ) {
         output[i] = Tau_m[i] + input_tauf[i] + input_taug[i];
     }
-
+    
     // Write output doubles
     outport.write(output);
 }

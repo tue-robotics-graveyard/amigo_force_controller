@@ -42,7 +42,7 @@ Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RE
 #### SET UP JOINTSTATE AGGREGATOR ####
 JointStateAggregator.addJointNames(JOINT_NAMES)
 JointStateAggregator.addJointNames(DUMMY_JOINT_NAMES)
-JointStateAggregator.addAggregationPort(BODYNAME)
+JointStateAggregator.addAggregationPort(BODYPARTNAME)
 
 #### CONFIGURATION OF COMPONENTS ####
 
@@ -111,7 +111,7 @@ RPERA_ReaduRef.vector_size 									= N
 RPERA_ReaduRef.configure
 
 ### TORQUEFEEDBACK
-loadComponent("RPERA_TorqueFeedback","UPF::TorqueFeedbackController")
+loadComponent("RPERA_TorqueFeedback","FORCECONTROL::TorqueFeedback")
 addPeer("Supervisor","RPERA_TorqueFeedback")
 setActivity("RPERA_TorqueFeedback",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_TorqueFeedback.N										= N
@@ -137,10 +137,10 @@ RPERA_FrictionTorques.value 								= array (	0.0, 		0.0, 		0.0, 		0.0, 		0.0, 	
 RPERA_FrictionTorques.configure
 
 ### GRAVITYTORQUES - Calculates for each point mass Tg = transpose(J)*GravityWrench;
-loadComponent("RPERA_GravityTorques","ARM::GravityTorquesParser")
+loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
 addPeer("Supervisor","RPERA_GravityTorques")
 setActivity("RPERA_GravityTorques",0.0,LowestPriority,ORO_SCHED_OTHER)
-RPERA_GravityTorques.BaseLinkName							= "shoulder_mount_right"
+RPERA_GravityTorques.RootLinkName							= "shoulder_mount_right"
 RPERA_GravityTorques.TipLinkName							= "hand_right"
 RPERA_GravityTorques.GravityVector							= array (	0.0,		0.0,	   -10.0)
 RPERA_GravityTorques.configure

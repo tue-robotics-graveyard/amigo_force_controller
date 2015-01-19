@@ -42,6 +42,7 @@ namespace FORCECONTROL
 			doubles input_taug;
 			doubles input_tauf;		
 			doubles output;
+			int cntr;
 
 			doubles MotorInertiaSuperDiagonal, MotorInertiaDiagonal, MotorInertiaSubDiagonal;
 			doubles ScaledMotorInertiaSuperDiagonal, ScaledMotorInertiaDiagonal, ScaledMotorInertiaSubDiagonal;

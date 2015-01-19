@@ -42,7 +42,7 @@ Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RE
 #### SET UP JOINTSTATE AGGREGATOR ####
 JointStateAggregator.addJointNames(JOINT_NAMES)
 JointStateAggregator.addJointNames(DUMMY_JOINT_NAMES)
-JointStateAggregator.addAggregationPort(BODYNAME)
+JointStateAggregator.addAggregationPort(BODYPARTNAME)
 
 #### CONFIGURATION OF COMPONENTS ####
 
@@ -68,6 +68,21 @@ RPERA_MotorToJointSpace.function4 							= array  ( 	0.0,  		0.0,  		0.0,  		0.5
 RPERA_MotorToJointSpace.function5 							= array  ( 	0.0,  		0.0,  		0.0, 	   -0.5*GR_EM,	0.5*GR_EM,	0.0,  		0.0 	 	)
 RPERA_MotorToJointSpace.function6 							= array  ( 	0.0,  		0.0,  		0.0,  		0.0,  		0.0, 		0.5*GR_WM,	0.5*GR_WM	)
 RPERA_MotorToJointSpace.function7 							= array  ( 	0.0,  		0.0,  		0.0,  		0.0,  		0.0, 	   -0.5*GR_WM,	0.5*GR_WM	)
+
+### Joint to motor torques ###
+loadComponent("RPERA_JointToMotorSpace","MATH::MatrixTransform")
+addPeer("Supervisor","RPERA_JointToMotorSpace")
+setActivity("RPERA_JointToMotorSpace",0.0,HighestPriority,ORO_SCHED_RT)
+RPERA_JointToMotorSpace.Nrows 				= N
+RPERA_JointToMotorSpace.Ncolumns 			= N
+RPERA_JointToMotorSpace.configure
+RPERA_JointToMotorSpace.function1			= array ( 0.5,  0.5,  0.0,  0.0,  0.0,  0.0,  0.0)
+RPERA_JointToMotorSpace.function2			= array (-0.5,  0.5,  0.0,  0.0,  0.0,  0.0,  0.0)
+RPERA_JointToMotorSpace.function3 			= array ( 0.0,  0.0,  1.0,  0.0,  0.0,  0.0,  0.0)
+RPERA_JointToMotorSpace.function4 			= array ( 0.0,  0.0,  0.0,  0.5, -0.5,  0.0,  0.0)
+RPERA_JointToMotorSpace.function5 			= array ( 0.0,  0.0,  0.0,  0.5,  0.5,  0.0,  0.0)
+RPERA_JointToMotorSpace.function6 			= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.5, -0.5)
+RPERA_JointToMotorSpace.function7 			= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.5,  0.5)
 
 ## JOINTANGLESTOROS - publishes joint angles on ROS-topic
 loadComponent("RPERA_JointAnglesToROS","ROS::DoublesToJointState")
@@ -111,7 +126,7 @@ RPERA_ReaduRef.vector_size 									= N
 RPERA_ReaduRef.configure
 
 ### TORQUEFEEDBACK
-loadComponent("RPERA_TorqueFeedback","UPF::TorqueFeedbackController")
+loadComponent("RPERA_TorqueFeedback","FORCECONTROL::TorqueFeedback")
 addPeer("Supervisor","RPERA_TorqueFeedback")
 setActivity("RPERA_TorqueFeedback",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_TorqueFeedback.N										= 2
@@ -141,10 +156,10 @@ RPERA_FrictionTorques.direction_gain 						= array (0.0, 0.0); #TO DO FILL IN FM
 RPERA_FrictionTorques.configure
 
 ### GRAVITYTORQUES - Calculates for each point mass Tg = transpose(J)*GravityWrench;
-loadComponent("RPERA_GravityTorques","ARM::GravityTorquesParser")
+loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
 addPeer("Supervisor","RPERA_GravityTorques")
 setActivity("RPERA_GravityTorques",0.0,LowestPriority,ORO_SCHED_OTHER)
-RPERA_GravityTorques.BaseLinkName							= "shoulder_mount_right"
+RPERA_GravityTorques.RootLinkName							= "shoulder_mount_right"
 RPERA_GravityTorques.TipLinkName							= "hand_right"
 RPERA_GravityTorques.GravityVector							= array (	0.0,		0.0,	   -10.0)
 RPERA_GravityTorques.configure
@@ -162,13 +177,13 @@ RPERA_Safety.configure
 
 #### CONNECT COMPONENTS ####
 ## IO ##			
-connect ("Soem.Slave_1010.encoderAngle1",					"RPERA_ReadEncoders.enc1_in",					ConnPolicy() ); # enc1
-connect ("Soem.Slave_1010.encoderAngle2",					"RPERA_ReadEncoders.enc2_in",					ConnPolicy() ); # enc2
-connect ("Soem.Slave_1011.encoderAngle1",					"RPERA_ReadEncoders.enc3_in",					ConnPolicy() ); # enc3
-connect ("Soem.Slave_1011.encoderAngle2",					"RPERA_ReadEncoders.enc4_in",					ConnPolicy() ); # enc4
-connect ("Soem.Slave_1011.encoderAngle3",					"RPERA_ReadEncoders.enc5_in",					ConnPolicy() ); # enc5
-connect ("Soem.Slave_1012.encoderAngle1",					"RPERA_ReadEncoders.enc6_in",					ConnPolicy() ); # enc6
-connect ("Soem.Slave_1012.encoderAngle2",					"RPERA_ReadEncoders.enc7_in",					ConnPolicy() ); # enc7
+connect ("Soem.Slave_1005.encoder1",						"RPERA_ReadEncoders.enc1_in",					ConnPolicy() ); # enc1
+connect ("Soem.Slave_1005.encoder2",						"RPERA_ReadEncoders.enc2_in",					ConnPolicy() ); # enc2
+connect ("Soem.Slave_1006.encoder1",						"RPERA_ReadEncoders.enc3_in",					ConnPolicy() ); # enc3
+connect ("Soem.Slave_1006.encoder2",						"RPERA_ReadEncoders.enc4_in",					ConnPolicy() ); # enc4
+connect ("Soem.Slave_1006.encoder3",						"RPERA_ReadEncoders.enc5_in",					ConnPolicy() ); # enc5
+connect ("Soem.Slave_1007.encoder1",						"RPERA_ReadEncoders.enc6_in",					ConnPolicy() ); # enc6
+connect ("Soem.Slave_1007.encoder2",						"RPERA_ReadEncoders.enc7_in",					ConnPolicy() ); # enc7
 connect ("RPERA_ReadEncoders.out",							"RPERA_MotorToJointSpace.in",					ConnPolicy() ); # theta
 connect ("RPERA_MotorToJointSpace.out",						"RPERA_JointAnglesToROS.pos_in",				ConnPolicy() ); # q
 connect ("RPERA_AnalogIns.out1",							"RPERA_SensorTorques.voltage_in",				ConnPolicy() ); # V_tau
@@ -176,7 +191,7 @@ connect ("RPERA_SensorTorques.measured_torques_out",		"RPERA_TorqueFilter.in",		
 connect ("RPERA_TorqueFilter.out",							"RPERA_TorqueDiff.u",							ConnPolicy() ); # tau
 
 ## Torque Feedback, Gravity and Friction compensator ##
-connect ("RPERA_ReaduRef.out",								"RPERA_TorqueFeedback.in_u",					ConnPolicy() ); # u
+connect ("RPERA_ReaduRef.pos_out",							"RPERA_TorqueFeedback.in_u",					ConnPolicy() ); # u
 connect ("RPERA_TorqueFilter.out",							"RPERA_TorqueFeedback.in_tau",					ConnPolicy() ); # tau
 connect ("RPERA_TorqueDiff.ue",								"RPERA_TorqueFeedback.in_taudot",				ConnPolicy() ); # tau_dot
 connect ("RPERA_MotorToJointSpace.out",						"RPERA_GravityTorques.in",						ConnPolicy() ); # q
@@ -200,7 +215,6 @@ Supervisor.AddAllwaysOnPeer ("RPERA_MotorToJointSpace")
 Supervisor.AddAllwaysOnPeer ("RPERA_JointAnglesToROS")
 
 Supervisor.AddEnabledPeer ("RPERA_TorqueFeedback", 			BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_MotorCharacteristics", 	BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_GravityTorques", 			BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_FrictionTorques", 		BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_SensorTorques", 			BODYNUMBER )
