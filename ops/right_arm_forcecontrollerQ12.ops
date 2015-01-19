@@ -20,7 +20,12 @@ var double MAXVOLT				= 24.0
 var double MAXPWM				= 1000.0
 var double VOLT2PWM				= MAXPWM/MAXVOLT
 var int N						= 7
-# Shoulder Motor 							# Shoulder motor q3 						# Elbow motor q3							# Wrist motor q3
+var int BODYNUMBER 				= 4
+var string BODYPARTNAME 		= "right_arm"
+var bool HOMEABLE 				= false
+var bool HOMINGOBLIGATORY		= false
+var bool RESETTABLE				= false
+# Shoulder Q1/Q2 							# Shoulder motor Q3 						# Elbow motor Q4/Q5							# Wrist motor Q6/Q7
 var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0
 var double ECNTS_SM		= 256.0*4.0;		var double ECNTS_S3		= 256.0*4.0;		var double ECNTS_EM		= 500.0*4.0;		var double ECNTS_WM		= 128.0*4.0
 var double ENC2SI_SM	= 2.0*PI/ECNTS_SM;	var double ENC2SI_S3	= 2.0*PI/ECNTS_S3;	var double ENC2SI_EM	= 2.0*PI/ECNTS_EM;	var double ENC2SI_WM	= 2.0*PI/ECNTS_WM
@@ -30,11 +35,6 @@ var double Bq_SM 		= 1512900.0;		var double Bq_S3 		= 1512900.0;		var double Bq_
 var double sBq_SM 		= Bq_SM/4.0;		var double sBq_S3 		= Bq_S3/4.0;		var double sBq_EM 		= Bq_EM/4.0; 		var double sBq_WM 		= Bq_WM/4.0;
 var double K_SM			= 1.0;				var double K_S3			= 1.0;				var double K_EM			= 1.0;				var double K_WM			= 1.0;
 var double D_SM			= 1.0;				var double D_S3			= 1.0;				var double D_EM			= 1.0;				var double D_WM			= 1.0;
-var int BODYNUMBER 				= 4
-var string BODYPARTNAME 		= "right_arm"
-var bool HOMEABLE 				= true
-var bool HOMINGOBLIGATORY		= false
-var bool RESETTABLE				= true
 
 ### AddBodyPart ###
 Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RESETTABLE)
@@ -69,21 +69,6 @@ RPERA_MotorToJointSpace.function5 							= array  ( 	0.0,  		0.0,  		0.0, 	   -0
 RPERA_MotorToJointSpace.function6 							= array  ( 	0.0,  		0.0,  		0.0,  		0.0,  		0.0, 		0.5*GR_WM,	0.5*GR_WM	)
 RPERA_MotorToJointSpace.function7 							= array  ( 	0.0,  		0.0,  		0.0,  		0.0,  		0.0, 	   -0.5*GR_WM,	0.5*GR_WM	)
 
-### Joint to motor torques ###
-loadComponent("RPERA_JointToMotorSpace","MATH::MatrixTransform")
-addPeer("Supervisor","RPERA_JointToMotorSpace")
-setActivity("RPERA_JointToMotorSpace",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_JointToMotorSpace.Nrows 				= N
-RPERA_JointToMotorSpace.Ncolumns 			= N
-RPERA_JointToMotorSpace.configure
-RPERA_JointToMotorSpace.function1			= array ( 0.5,  0.5,  0.0,  0.0,  0.0,  0.0,  0.0)
-RPERA_JointToMotorSpace.function2			= array (-0.5,  0.5,  0.0,  0.0,  0.0,  0.0,  0.0)
-RPERA_JointToMotorSpace.function3 			= array ( 0.0,  0.0,  1.0,  0.0,  0.0,  0.0,  0.0)
-RPERA_JointToMotorSpace.function4 			= array ( 0.0,  0.0,  0.0,  0.5, -0.5,  0.0,  0.0)
-RPERA_JointToMotorSpace.function5 			= array ( 0.0,  0.0,  0.0,  0.5,  0.5,  0.0,  0.0)
-RPERA_JointToMotorSpace.function6 			= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.5, -0.5)
-RPERA_JointToMotorSpace.function7 			= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.5,  0.5)
-
 ## JOINTANGLESTOROS - publishes joint angles on ROS-topic
 loadComponent("RPERA_JointAnglesToROS","ROS::DoublesToJointState")
 addPeer("Supervisor","RPERA_JointAnglesToROS")
@@ -95,26 +80,26 @@ RPERA_JointAnglesToROS.configure
 loadComponent("RPERA_SensorTorques","ARM::SensorTorquesAutoC3")
 addPeer("Supervisor","RPERA_SensorTorques")
 setActivity("RPERA_SensorTorques",(TS),LowestPriority,ORO_SCHED_OTHER)
-RPERA_SensorTorques.vector_size 							= N
-RPERA_SensorTorques.c1 										= array (	42.0,		4250.0,		94.0,		20.0,		825.0,		1.0, 		1.0 		)
-RPERA_SensorTorques.c2 										= array (	-0.8,		12.0,		1.0,		-2.2,		1.0,		1.0, 		1.0 		)
+RPERA_SensorTorques.vector_size 							= 2
+RPERA_SensorTorques.c1 										= array (	42.0,		4250.0)
+RPERA_SensorTorques.c2 										= array (	-0.8,		12.0)
 RPERA_SensorTorques.configure
 
 ### LOWPASS - Removes noise from SensorTorques output
 loadComponent("RPERA_TorqueFilter","FILTERS::SecondOrderLowPasses")
 addPeer("Supervisor","RPERA_TorqueFilter")
 setActivity("RPERA_TorqueFilter",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_TorqueFilter.vector_size 								= N
+RPERA_TorqueFilter.vector_size 								= 2
 RPERA_TorqueFilter.sampling_time 							= TS
-RPERA_TorqueFilter.pole_frequency 							= array (	10.0, 		10.0, 		10.0, 		10.0, 		10.0, 		10.0, 		10.0 		)
-RPERA_TorqueFilter.pole_damping 							= array (	0.7, 		0.7, 		0.7, 		0.7, 		0.7, 		0.7, 		0.7			)
+RPERA_TorqueFilter.pole_frequency 							= array (	10.0, 		10.0)
+RPERA_TorqueFilter.pole_damping 							= array (	0.7, 		0.7)
 RPERA_TorqueFilter.configure
 
 ### TORQUEDIFF - Differentiates torque output
 loadComponent("RPERA_TorqueDiff","MATH::RealTimeDerivator")
 addPeer("Supervisor","RPERA_TorqueDiff")
 setActivity("RPERA_TorqueDiff",TS,LowestPriority,ORO_SCHED_OTHER)
-RPERA_TorqueDiff.vector_size								= N
+RPERA_TorqueDiff.vector_size								= 2
 RPERA_TorqueDiff.bw	 										= 10.0
 RPERA_TorqueDiff.configure
 
@@ -122,7 +107,7 @@ RPERA_TorqueDiff.configure
 loadComponent("RPERA_ReaduRef","ROS::JointStateToDoubles")
 addPeer("Supervisor","RPERA_ReaduRef")
 setActivity("RPERA_ReaduRef",0.0,HighestPriority,ORO_SCHED_RT)
-RPERA_ReaduRef.vector_size 									= N
+RPERA_ReaduRef.vector_size 									= 2
 RPERA_ReaduRef.configure
 
 ### TORQUEFEEDBACK
@@ -149,20 +134,35 @@ loadComponent("RPERA_FrictionTorques","FILTERS::FeedForward")
 addPeer("Supervisor","RPERA_FrictionTorques")
 setActivity("RPERA_FrictionTorques",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_FrictionTorques.vector_size 							= 2
-RPERA_FrictionTorques.coulomb_gain 							= array (0.0, 0.0); #TO DO FILL IN FM PARAM
-RPERA_FrictionTorques.viscous_gain 							= array (0.0, 0.0); #TO DO FILL IN FM PARAM
-RPERA_FrictionTorques.acceleration_gain 					= array (0.0, 0.0); #TO DO FILL IN FM PARAM
-RPERA_FrictionTorques.direction_gain 						= array (0.0, 0.0); #TO DO FILL IN FM PARAM
+RPERA_FrictionTorques.coulomb_gain 							= array (0.4, 0.4)
+RPERA_FrictionTorques.viscous_gain 							= array (0.0, 0.0)
+RPERA_FrictionTorques.acceleration_gain 					= array (0.25, 0.25)
+RPERA_FrictionTorques.direction_gain 						= array (0.0, 0.0)
 RPERA_FrictionTorques.configure
 
 ### GRAVITYTORQUES - Calculates for each point mass Tg = transpose(J)*GravityWrench;
 loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
 addPeer("Supervisor","RPERA_GravityTorques")
-setActivity("RPERA_GravityTorques",0.0,LowestPriority,ORO_SCHED_OTHER)
+setActivity("RPERA_GravityTorques",0.0,HighestPriority,ORO_SCHED_OTHER)
 RPERA_GravityTorques.RootLinkName							= "shoulder_mount_right"
 RPERA_GravityTorques.TipLinkName							= "hand_right"
 RPERA_GravityTorques.GravityVector							= array (	0.0,		0.0,	   -10.0)
 RPERA_GravityTorques.configure
+
+### Joint to motor torques ###
+loadComponent("RPERA_JointToMotorSpace","MATH::MatrixTransform")
+addPeer("Supervisor","RPERA_JointToMotorSpace")
+setActivity("RPERA_JointToMotorSpace",0.0,HighestPriority,ORO_SCHED_RT)
+RPERA_JointToMotorSpace.Nrows 								= N
+RPERA_JointToMotorSpace.Ncolumns 							= N
+RPERA_JointToMotorSpace.configure
+RPERA_JointToMotorSpace.function1							= array ( 0.5,  0.5,  0.0,  0.0,  0.0,  0.0,  0.0)
+RPERA_JointToMotorSpace.function2							= array (-0.5,  0.5,  0.0,  0.0,  0.0,  0.0,  0.0)
+RPERA_JointToMotorSpace.function3 							= array ( 0.0,  0.0,  1.0,  0.0,  0.0,  0.0,  0.0)
+RPERA_JointToMotorSpace.function4 							= array ( 0.0,  0.0,  0.0,  0.5, -0.5,  0.0,  0.0)
+RPERA_JointToMotorSpace.function5 							= array ( 0.0,  0.0,  0.0,  0.5,  0.5,  0.0,  0.0)
+RPERA_JointToMotorSpace.function6 							= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.5, -0.5)
+RPERA_JointToMotorSpace.function7 							= array ( 0.0,  0.0,  0.0,  0.0,  0.0,  0.5,  0.5)
 
 ### Safety ###
 loadComponent("RPERA_Safety","SUPERVISORY::Safety")
@@ -173,7 +173,30 @@ RPERA_Safety.NM												= N
 RPERA_Safety.maxJointErrors									= array (500.0, 	500.0,	 	500.0, 	   	400.0,  	400.0, 	   	300.0, 		300.0)
 RPERA_Safety.motorSaturations								= array (500.0, 	500.0,	 	500.0, 	   	400.0,  	400.0, 	   	300.0, 		300.0)
 RPERA_Safety.maxConSatTime									= 5.0
-RPERA_Safety.configure					
+RPERA_Safety.configure	
+
+### TEMP
+loadComponent("RPERA_ZEROS2","SOURCES::ConstantSignal")
+addPeer("Supervisor","RPERA_ZEROS2")
+setActivity("RPERA_ZEROS2",TS,HighestPriority/2,ORO_SCHED_OTHER)
+RPERA_ZEROS2.vector_size 									= 2
+RPERA_ZEROS2.value 											= array (0.0, 0.0)
+RPERA_ZEROS2.configure	
+
+### TEMP
+loadComponent("RPERA_ZEROS5","SOURCES::ConstantSignal")
+addPeer("Supervisor","RPERA_ZEROS5")
+setActivity("RPERA_ZEROS5",TS,HighestPriority/2,ORO_SCHED_OTHER)
+RPERA_ZEROS5.vector_size 									= 5
+RPERA_ZEROS5.value 											= array (0.0, 0.0, 0.0, 0.0, 0.0)
+RPERA_ZEROS5.configure	
+
+loadComponent("RPERA_VectorConcatenate","SIGNALROUTING::VectorConcatenate")
+addPeer("Supervisor","RPERA_VectorConcatenate")
+setActivity("RPERA_VectorConcatenate",0.0,HighestPriority,ORO_SCHED_OTHER)
+RPERA_VectorConcatenate.vector_size 						= 2
+RPERA_VectorConcatenate.event_port 							= array (1.0, 0.0)
+RPERA_VectorConcatenate.configure				
 
 #### CONNECT COMPONENTS ####
 ## IO ##			
@@ -196,10 +219,12 @@ connect ("RPERA_TorqueFilter.out",							"RPERA_TorqueFeedback.in_tau",					Conn
 connect ("RPERA_TorqueDiff.ue",								"RPERA_TorqueFeedback.in_taudot",				ConnPolicy() ); # tau_dot
 connect ("RPERA_MotorToJointSpace.out",						"RPERA_GravityTorques.in",						ConnPolicy() ); # q
 connect ("RPERA_GravityTorques.out",						"RPERA_TorqueFeedback.in_taug",					ConnPolicy() ); # tau_g
-#connect ("TODO WHERE DO I GET THESE",						"RPERA_FrictionTorques.vel_in",					ConnPolicy() ); # vel
-#connect ("TODO WHERE DO I GET THESE",						"RPERA_FrictionTorques.acc_in",					ConnPolicy() ); # acc
+connect ("RPERA_ZEROS2.out",								"RPERA_FrictionTorques.vel_in",					ConnPolicy() ); # vel - zeros
+connect ("RPERA_ZEROS2.out",								"RPERA_FrictionTorques.acc_in",					ConnPolicy() ); # acc - zeros
 connect ("RPERA_FrictionTorques.out",						"RPERA_TorqueFeedback.in_tauf",					ConnPolicy() ); # tau_f
-connect ("RPERA_TorqueFeedback.out",						"RPERA_JointToMotorSpace.in",					ConnPolicy() ); # tau_M
+connect ("RPERA_TorqueFeedback.out",						"RPERA_VectorConcatenate.in1",					ConnPolicy() ); # tau_M
+connect ("RPERA_ZEROS5.out",								"RPERA_VectorConcatenate.in2",					ConnPolicy() ); # zeros
+connect ("RPERA_VectorConcatenate.out",						"RPERA_JointToMotorSpace.in",					ConnPolicy() ); # tau_M + zeros
 connect ("RPERA_JointToMotorSpace.out",						"RPERA_AnalogOuts.in1",							ConnPolicy() ); # tau_M,m
 
 ## Safety Monitor ##
@@ -221,3 +246,7 @@ Supervisor.AddEnabledPeer ("RPERA_SensorTorques", 			BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueFilter", 			BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueDiff", 				BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_ReaduRef", 				BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_ZEROS2", 					BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_ZEROS5", 					BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_VectorConcatenate", 		BODYNUMBER )
+ 
