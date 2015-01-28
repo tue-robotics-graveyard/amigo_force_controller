@@ -39,19 +39,19 @@ namespace FORCECONTROL
 			doubles input_u;
 			doubles input_tau;
 			doubles input_taudot;
-			doubles input_taug;
-			doubles input_tauf;		
 			doubles output;
 			int cntr;
+			bool safe;
 
 			doubles MotorInertiaSuperDiagonal, MotorInertiaDiagonal, MotorInertiaSubDiagonal;
 			doubles ScaledMotorInertiaSuperDiagonal, ScaledMotorInertiaDiagonal, ScaledMotorInertiaSubDiagonal;
 			doubles DampingSuperDiagonal, DampingDiagonal, DampingSubDiagonal;
 			doubles StiffnessSuperDiagonal, StiffnessDiagonal, StiffnessSubDiagonal;
+			doubles OUTU, OUTTAU, OUTTAUDOT;
 
 			// vectors
 			Eigen::VectorXd u, tau, taudot;				// input vectors
-			Eigen::VectorXd Tau_m; 						// output vector
+			Eigen::VectorXd output_u, output_tau, output_taudot; 						// output vectors
 
 			// matrices
 			Eigen::MatrixXd	DKinv, BBtinv, IMinBBtinv; 	// intermediate matrices
@@ -60,9 +60,10 @@ namespace FORCECONTROL
 			InputPort<doubles> inport_u;
 			InputPort<doubles> inport_tau;
 			InputPort<doubles> inport_taudot;
-			InputPort<doubles> inport_tauf;
-			InputPort<doubles> inport_taug;
-			OutputPort<doubles> outport;
+			InputPort<bool> enable_inport;
+			OutputPort<doubles> outport_u;
+			OutputPort<doubles> outport_tau;
+			OutputPort<doubles> outport_taudot;
 
 			TorqueFeedback(const string& name);
 			~TorqueFeedback();

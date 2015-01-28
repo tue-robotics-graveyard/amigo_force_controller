@@ -26,12 +26,13 @@ using namespace FORCECONTROL;
 TorqueFeedback::TorqueFeedback(const string& name) : TaskContext(name, PreOperational)
 {
     // Adding ports
-    addPort( "in_u", inport_u );
-    addEventPort( "in_tau", inport_tau );
-    addPort( "in_taudot", inport_taudot );
-    addPort( "in_tauf", inport_tauf );
-    addPort( "in_taug", inport_taug );
-    addPort( "out", outport );
+    addPort( "in_u", 									inport_u );
+    addEventPort( "in_tau", 							inport_tau );
+    addPort( "in_taudot", 								inport_taudot );
+    addPort( "outu", 									outport_u );
+    addPort( "outt", 									outport_tau);
+    addPort( "outtd", 									outport_taudot );
+    addPort( "enable",									enable_inport);
 
     // Adding properties
     addProperty( "N", 									N );
@@ -57,15 +58,13 @@ bool TorqueFeedback::configureHook()
     input_u.assign(N,0.0);
     input_tau.assign(N,0.0);
     input_taudot.assign(N,0.0);
-    input_tauf.assign(N,0.0);
-    input_taug.assign(N,0.0);
     output.assign(N,0.0);
     
     // declaration of input, intermediate and output vectors
     u.resize(N);
     tau.resize(N);
     taudot.resize(N);     
-    Tau_m.resize(N);
+    
     
     // declaration of matrices
 	DKinv.resize(N,N);
@@ -73,6 +72,7 @@ bool TorqueFeedback::configureHook()
 	IMinBBtinv.resize(N,N);
 	
 	cntr = 0;
+	safe = false;
     
     return true;
 }
@@ -86,7 +86,7 @@ bool TorqueFeedback::startHook()
         return false;
     }
 
-    if ( !outport.connected() ) {
+    if ( ( !outport_u.connected() ) || ( !outport_tau.connected() ) || ( !outport_taudot.connected() ) ) {
         log(Error)<<"TorqueFeedback: Outport not connected!"<<endlog();
         return false;
     }
@@ -118,6 +118,13 @@ bool TorqueFeedback::startHook()
     Eigen::MatrixXd D(N,N);
     Eigen::MatrixXd K(N,N);
     
+	output_u.resize(N);
+	output_tau.resize(N);
+	output_taudot.resize(N);
+	OUTU.resize(N);
+	OUTTAU.resize(N);
+	OUTTAUDOT.resize(N);
+    
     // Filling in (Sub/Super) Diagonals
     for ( uint i = 0; i < N; i++ ) { 
         B(i,i) = MotorInertiaDiagonal[i];
@@ -129,7 +136,7 @@ bool TorqueFeedback::startHook()
     for ( uint i = 0; i < ( N - 1 ) ; i++ ) {
         B(i,(i+1)) = MotorInertiaSuperDiagonal[i];
         Bt(i,(i+1)) = ScaledMotorInertiaSuperDiagonal[i];
-        D(i,(i+1)) = DampingSuperDiagonal[i];		
+        D(i,(i+1)) = DampingSuperDiagonal[i];
         K(i,(i+1)) = StiffnessSuperDiagonal[i];
         B((i+1),i) = MotorInertiaSubDiagonal[i];
         Bt((i+1),i) = ScaledMotorInertiaSubDiagonal[i];
@@ -141,21 +148,38 @@ bool TorqueFeedback::startHook()
     Eigen::MatrixXd I;
     I.setIdentity(N,N);
     DKinv = D * K.inverse();
-    BBtinv = B * Bt.inverse();
+    BBtinv = Bt.inverse();
     IMinBBtinv = (I - (BBtinv));
+       
+    log(Warning)<<"TorqueFeedback:             I: [" << I(0,0) << ", " << I(0,1) << "; " << I(1,0) << ", " << I(1,1) << "]!"<<endlog();
+	log(Warning)<<"TorqueFeedback:             D: [" << D(0,0) << ", " << D(0,1) << "; " << D(1,0) << ", " << D(1,1) << "]!"<<endlog();
+    log(Warning)<<"TorqueFeedback:             K: [" << K(0,0) << ", " << K(0,1) << "; " << K(1,0) << ", " << K(1,1) << "]!"<<endlog();
+    
+    log(Warning)<<"TorqueFeedback:             B: [" << B(0,0) << ", " << B(0,1) << "; " << B(1,0) << ", " << B(1,1) << "]!"<<endlog();
+    log(Warning)<<"TorqueFeedback:            Bt: [" << Bt(0,0) << ", " << Bt(0,1) << "; " << Bt(1,0) << ", " << Bt(1,1) << "]!"<<endlog();
+   
+    log(Warning)<<"TorqueFeedback:         DKinv: [" << DKinv(0,0) << ", " << DKinv(0,1) << "; " << DKinv(1,0) << ", " << DKinv(1,1) << "]!"<<endlog();
+    log(Warning)<<"TorqueFeedback:        BBtinv: [" << BBtinv(0,0) << ", " << BBtinv(0,1) << "; " << BBtinv(1,0) << ", " << BBtinv(1,1) << "]!"<<endlog();
+    log(Warning)<<"TorqueFeedback:    IMinBBtinv: [" << IMinBBtinv(0,0) << ", " << IMinBBtinv(0,1) << "; " << IMinBBtinv(1,0) << ", " << IMinBBtinv(1,1) << "]!"<<endlog();
 
     return true;
 } 
  
 void TorqueFeedback::updateHook()
 {
+	// send control output of safe is false is received
+    if (enable_inport.read(safe) == false) {
+		doubles zeros(N,0.0);
+		outport_u.write(zeros);
+		outport_tau.write(zeros);
+		outport_taudot.write(zeros);
+		return;
+	}
 
     // Read input
 	inport_u.read(input_u);
     inport_tau.read(input_tau);
     inport_taudot.read(input_taudot);
-    inport_tauf.read(input_tauf);
-    inport_taug.read(input_taug);
     
     // Convert doubles to vectors
     for ( uint i = 0; i < N; i++ ) {
@@ -163,25 +187,35 @@ void TorqueFeedback::updateHook()
         tau[i] = input_tau[i];
         taudot[i] = input_taudot[i];
     }
-
-
 	
-    // Calculate Tau_m
-    Tau_m = BBtinv*u + IMinBBtinv * (tau + DKinv*taudot);
-    
-    if (cntr>1000) {
-		cntr = 0;
-		log(Warning)<<"TorqueFeedback: Tau_m[0] = " << Tau_m[0] << "  u[0] = " << u[0] << "  tau[0] = " << tau[0] << "  taudot[0] = " << taudot[0] << "!"<<endlog();
-	}
-	cntr++;    
-
-    // Convert vector to doubles and add the received tau_f and tau_g
+	// Set to zero
     for ( uint i = 0; i < N; i++ ) {
-        output[i] = Tau_m[i] + input_tauf[i] + input_taug[i];
+		output_u[i] = 0.0;
+		output_tau[i] = 0.0;
+		output_taudot[i] = 0.0;
+		OUTU[i] = 0.0;
+		OUTTAU[i] = 0.0;
+		OUTTAUDOT[i] = 0.0;
+    }
+	
+	// calculate
+	output_u = BBtinv*u;
+	output_tau = IMinBBtinv*tau;
+	output_taudot = IMinBBtinv*DKinv*taudot;
+
+	// Convert to doubles
+    for ( uint i = 0; i < N; i++ ) {
+		OUTU[i] = output_u[i];
+		OUTTAU[i] = output_tau[i];
+		OUTTAUDOT[i] = output_taudot[i];
     }
     
-    // Write output doubles
-    outport.write(output);
+    // Write output
+	outport_u.write(OUTU);
+	outport_tau.write(OUTTAU);
+	outport_taudot.write(OUTTAUDOT);
+
+    return;
 }
 
 ORO_CREATE_COMPONENT(FORCECONTROL::TorqueFeedback)

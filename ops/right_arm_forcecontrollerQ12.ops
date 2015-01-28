@@ -16,9 +16,6 @@ var strings DUMMY_JOINT_NAMES 	= strings( "finger1_joint_right", "finger1_tip_jo
 var array UPPERJOINTLIMIT 		= array (   0.0,  		1.57,  		1.57, 		2.23,  		1.83,  		0.95,  		0.61,  4.0		)
 var array LOWERJOINTLIMIT 		= array (   -1.57, 		-1.57, 		-1.57,  	0.0, 		-1.83		-0.95, 		-0.61, -4.0		)
 var double PI					= 3.141592
-var double MAXVOLT				= 24.0
-var double MAXPWM				= 1000.0
-var double VOLT2PWM				= MAXPWM/MAXVOLT
 var int N						= 7
 var int BODYNUMBER 				= 4
 var string BODYPARTNAME 		= "right_arm"
@@ -27,6 +24,7 @@ var bool HOMINGOBLIGATORY		= false
 var bool RESETTABLE				= false
 # Shoulder Q1/Q2 							# Shoulder motor Q3 						# Elbow motor Q4/Q5							# Wrist motor Q6/Q7
 var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0
+var double C2T_SM		= 0.0538*GR_SM;		var double C2T_S3		= 1.0/371.25;		var double C2T_EM		= 1.0/410.0;		var double C2T_WM		= 1.0/350.0
 var double ECNTS_SM		= 256.0*4.0;		var double ECNTS_S3		= 256.0*4.0;		var double ECNTS_EM		= 500.0*4.0;		var double ECNTS_WM		= 128.0*4.0
 var double ENC2SI_SM	= 2.0*PI/ECNTS_SM;	var double ENC2SI_S3	= 2.0*PI/ECNTS_S3;	var double ENC2SI_EM	= 2.0*PI/ECNTS_EM;	var double ENC2SI_WM	= 2.0*PI/ECNTS_WM
 var double TermRes_SM	= 0.611;			var double TermRes_S3	= TermRes_SM; 		var double TermRes_EM	= 2.32;				var double TermRes_WM	= 21.5
@@ -81,8 +79,8 @@ loadComponent("RPERA_SensorTorques","ARM::SensorTorquesAutoC3")
 addPeer("Supervisor","RPERA_SensorTorques")
 setActivity("RPERA_SensorTorques",(TS),LowestPriority,ORO_SCHED_OTHER)
 RPERA_SensorTorques.vector_size 							= 2
-RPERA_SensorTorques.c1 										= array (	42.0,		4250.0)
-RPERA_SensorTorques.c2 										= array (	-0.8,		12.0)
+RPERA_SensorTorques.c1 										= array (	35.5,		32.0)
+RPERA_SensorTorques.c2 										= array (	-0.2,		-0.2)
 RPERA_SensorTorques.configure
 
 ### LOWPASS - Removes noise from SensorTorques output
@@ -115,19 +113,35 @@ loadComponent("RPERA_TorqueFeedback","FORCECONTROL::TorqueFeedback")
 addPeer("Supervisor","RPERA_TorqueFeedback")
 setActivity("RPERA_TorqueFeedback",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_TorqueFeedback.N										= 2
-RPERA_TorqueFeedback.MotorInertiaSuperDiagonal				= array( 	Bq_SM)
-RPERA_TorqueFeedback.MotorInertiaDiagonal					= array( 	Bq_SM,   	Bq_SM)
-RPERA_TorqueFeedback.MotorInertiaSubDiagonal				= array( 	Bq_SM)
-RPERA_TorqueFeedback.ScaledMotorInertiaSuperDiagonal		= array( 	sBq_SM)
-RPERA_TorqueFeedback.ScaledMotorInertiaDiagonal				= array( 	sBq_SM,   	sBq_SM)
-RPERA_TorqueFeedback.ScaledMotorInertiaSubDiagonal			= array( 	sBq_SM)
-RPERA_TorqueFeedback.StiffnessSuperDiagonal					= array( 	0.0)
-RPERA_TorqueFeedback.StiffnessDiagonal						= array( 	K_SM,		K_SM)
-RPERA_TorqueFeedback.StiffnessSubDiagonal					= array( 	0.0)
-RPERA_TorqueFeedback.DampingSuperDiagonal					= array( 	0.0)
-RPERA_TorqueFeedback.DampingDiagonal						= array( 	D_SM,		D_SM)
-RPERA_TorqueFeedback.DampingSubDiagonal						= array( 	0.0)
+RPERA_TorqueFeedback.MotorInertiaSuperDiagonal				= array( Bq_SM)
+RPERA_TorqueFeedback.MotorInertiaDiagonal					= array( Bq_SM,   	Bq_SM)
+RPERA_TorqueFeedback.MotorInertiaSubDiagonal				= array( Bq_SM)
+RPERA_TorqueFeedback.ScaledMotorInertiaSuperDiagonal		= array( sBq_SM)
+RPERA_TorqueFeedback.ScaledMotorInertiaDiagonal				= array( sBq_SM,   	sBq_SM)
+RPERA_TorqueFeedback.ScaledMotorInertiaSubDiagonal			= array( sBq_SM)
+RPERA_TorqueFeedback.StiffnessSuperDiagonal					= array( 0.0)
+RPERA_TorqueFeedback.StiffnessDiagonal						= array( K_SM,		K_SM)
+RPERA_TorqueFeedback.StiffnessSubDiagonal					= array( 0.0)
+RPERA_TorqueFeedback.DampingSuperDiagonal					= array( 0.0)
+RPERA_TorqueFeedback.DampingDiagonal						= array( D_SM,		D_SM)
+RPERA_TorqueFeedback.DampingSubDiagonal						= array( 0.0)
 RPERA_TorqueFeedback.configure
+
+### RPERA_ADD - Adds all feedback terms, Friction and gravity 
+loadComponent("RPERA_ADD","MATH::Addition")
+addPeer("Supervisor","RPERA_ADD")
+setActivity("RPERA_ADD",0.0,HighestPriority,ORO_SCHED_RT)
+RPERA_ADD.vectorsize 										= 2
+RPERA_ADD.numberofinputs									= 5
+RPERA_ADD.configure
+
+### RPERA_GAIN - FOR TORQUE TO  
+loadComponent("RPERA_GAIN","MATH::Gain")
+addPeer("Supervisor","RPERA_GAIN")
+setActivity("RPERA_GAIN",0.0,HighestPriority,ORO_SCHED_RT)
+RPERA_GAIN.vectorsize 										= 2
+RPERA_GAIN.gain												= array( 	C2T_SM, 	C2T_SM)
+RPERA_GAIN.configure
 
 ### FRICTIONTORQUES - Calculates Friction
 loadComponent("RPERA_FrictionTorques","FILTERS::FeedForward")
@@ -143,7 +157,7 @@ RPERA_FrictionTorques.configure
 ### GRAVITYTORQUES - Calculates for each point mass Tg = transpose(J)*GravityWrench;
 loadComponent("RPERA_GravityTorques","ARM::GravityTorques")
 addPeer("Supervisor","RPERA_GravityTorques")
-setActivity("RPERA_GravityTorques",0.0,HighestPriority,ORO_SCHED_OTHER)
+setActivity("RPERA_GravityTorques",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_GravityTorques.RootLinkName							= "shoulder_mount_right"
 RPERA_GravityTorques.TipLinkName							= "hand_right"
 RPERA_GravityTorques.GravityVector							= array (	0.0,		0.0,	   -10.0)
@@ -171,32 +185,51 @@ setActivity("RPERA_Safety",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_Safety.NJ												= N
 RPERA_Safety.NM												= N
 RPERA_Safety.maxJointErrors									= array (500.0, 	500.0,	 	500.0, 	   	400.0,  	400.0, 	   	300.0, 		300.0)
-RPERA_Safety.motorSaturations								= array (500.0, 	500.0,	 	500.0, 	   	400.0,  	400.0, 	   	300.0, 		300.0)
+RPERA_Safety.motorSaturations								= array (50.0, 	50.0,	 	500.0, 	   	400.0,  	400.0, 	   	300.0, 		300.0)
 RPERA_Safety.maxConSatTime									= 5.0
 RPERA_Safety.configure	
 
 ### TEMP
 loadComponent("RPERA_ZEROS2","SOURCES::ConstantSignal")
 addPeer("Supervisor","RPERA_ZEROS2")
-setActivity("RPERA_ZEROS2",TS,HighestPriority/2,ORO_SCHED_OTHER)
+setActivity("RPERA_ZEROS2",TS,HighestPriority/2,ORO_SCHED_RT)
 RPERA_ZEROS2.vector_size 									= 2
 RPERA_ZEROS2.value 											= array (0.0, 0.0)
-RPERA_ZEROS2.configure	
+RPERA_ZEROS2.configure
 
 ### TEMP
 loadComponent("RPERA_ZEROS5","SOURCES::ConstantSignal")
 addPeer("Supervisor","RPERA_ZEROS5")
-setActivity("RPERA_ZEROS5",TS,HighestPriority/2,ORO_SCHED_OTHER)
+setActivity("RPERA_ZEROS5",TS,HighestPriority/2,ORO_SCHED_RT)
 RPERA_ZEROS5.vector_size 									= 5
 RPERA_ZEROS5.value 											= array (0.0, 0.0, 0.0, 0.0, 0.0)
-RPERA_ZEROS5.configure	
+RPERA_ZEROS5.configure
 
 loadComponent("RPERA_VectorConcatenate","SIGNALROUTING::VectorConcatenate")
 addPeer("Supervisor","RPERA_VectorConcatenate")
-setActivity("RPERA_VectorConcatenate",0.0,HighestPriority,ORO_SCHED_OTHER)
+setActivity("RPERA_VectorConcatenate",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_VectorConcatenate.vector_size 						= 2
 RPERA_VectorConcatenate.event_port 							= array (1.0, 0.0)
 RPERA_VectorConcatenate.configure				
+
+#### Setting up tracing ###
+loadComponent("Tracing","Signal::Tracing")
+addPeer("Supervisor","Tracing")
+setActivity("Tracing",TS,HighestPriority,ORO_SCHED_RT)
+Tracing.vector_sizes = array (7.0, 2.0, 2.0, 2.0, 2.0, 7.0, 2.0, 2.0, 2.0)
+Tracing.buffersize =  30*1000;
+Tracing.filename = "/home/amigo/ros/data/hardware_tracing/max/forcecontrolled/test1.dat"
+Tracing.Ts = TS
+Tracing.configure
+connect ("RPERA_MotorToJointSpace.out",						"Tracing.in1",									ConnPolicy()) ; # pos
+connect ("RPERA_TorqueFeedback.outu",						"Tracing.in2",									ConnPolicy()) ; # FB u
+connect ("RPERA_TorqueFeedback.outt",						"Tracing.in3",									ConnPolicy()) ; # FB tau
+connect ("RPERA_TorqueFeedback.outtd",						"Tracing.in4",									ConnPolicy()) ; # FB taudot
+connect ("RPERA_ZEROS2.out",								"Tracing.in5",									ConnPolicy()) ; # FF taug
+connect ("RPERA_JointToMotorSpace.out",						"Tracing.in6",									ConnPolicy()) ; # FF tauf
+connect ("RPERA_ADD.out",									"Tracing.in7",									ConnPolicy()) ; # TAUM total
+connect ("RPERA_AnalogIns.out1",							"Tracing.in8",									ConnPolicy()) ; # TS vol
+connect ("RPERA_SensorTorques.measured_torques_out",		"Tracing.in9",									ConnPolicy()) ; # TS for
 
 #### CONNECT COMPONENTS ####
 ## IO ##			
@@ -218,18 +251,25 @@ connect ("RPERA_ReaduRef.pos_out",							"RPERA_TorqueFeedback.in_u",					ConnPo
 connect ("RPERA_TorqueFilter.out",							"RPERA_TorqueFeedback.in_tau",					ConnPolicy() ); # tau
 connect ("RPERA_TorqueDiff.ue",								"RPERA_TorqueFeedback.in_taudot",				ConnPolicy() ); # tau_dot
 connect ("RPERA_MotorToJointSpace.out",						"RPERA_GravityTorques.in",						ConnPolicy() ); # q
-connect ("RPERA_GravityTorques.out",						"RPERA_TorqueFeedback.in_taug",					ConnPolicy() ); # tau_g
 connect ("RPERA_ZEROS2.out",								"RPERA_FrictionTorques.vel_in",					ConnPolicy() ); # vel - zeros
 connect ("RPERA_ZEROS2.out",								"RPERA_FrictionTorques.acc_in",					ConnPolicy() ); # acc - zeros
-connect ("RPERA_FrictionTorques.out",						"RPERA_TorqueFeedback.in_tauf",					ConnPolicy() ); # tau_f
-connect ("RPERA_TorqueFeedback.out",						"RPERA_VectorConcatenate.in1",					ConnPolicy() ); # tau_M
+connect ("RPERA_TorqueFeedback.outu",						"RPERA_ADD.in1_ev",								ConnPolicy() ); # FB u
+connect ("RPERA_TorqueFeedback.outt",						"RPERA_ADD.in2",								ConnPolicy() ); # FB tau
+connect ("RPERA_TorqueFeedback.outtd",						"RPERA_ADD.in3",								ConnPolicy() ); # FB taudot
+connect ("RPERA_ZEROS2.out",								"RPERA_ADD.in4",								ConnPolicy() ); # FB taudot
+connect ("RPERA_ZEROS2.out",								"RPERA_ADD.in5",								ConnPolicy() ); # FB taudot
+connect ("RPERA_ADD.out",									"RPERA_GAIN.in",								ConnPolicy() ); # tau_M
+connect ("RPERA_GAIN.out",									"RPERA_VectorConcatenate.in1",					ConnPolicy() ); # tau_M
 connect ("RPERA_ZEROS5.out",								"RPERA_VectorConcatenate.in2",					ConnPolicy() ); # zeros
 connect ("RPERA_VectorConcatenate.out",						"RPERA_JointToMotorSpace.in",					ConnPolicy() ); # tau_M + zeros
 connect ("RPERA_JointToMotorSpace.out",						"RPERA_AnalogOuts.in1",							ConnPolicy() ); # tau_M,m
 
 ## Safety Monitor ##
-# TO DO FIGURE OUT WHAT TO DO WITH THIS
-
+connect ("RPERA_JointToMotorSpace.out",						"RPERA_Safety.controlEffort",					ConnPolicy() ); # controleffort
+connect ("RPERA_Safety.enable",								"RPERA_TorqueFeedback.enable",					ConnPolicy() ); # controleffort
+connect ("RPERA_Safety.enable",								"DigitalOuts.in1",				 				ConnPolicy() ); # Enable
+connect ("RPERA_Safety.enable",								RIGHT_ARM_LOWERARM+".enablePort", 				ConnPolicy() ); # Enable
+connect ("RPERA_Safety.error",								"Supervisor.right_arm_error", 					ConnPolicy() ); # Error
 ## ROS Streams ##
 stream ("RPERA_JointAnglesToROS.out",						ros.topic("/amigo/right_arm/measurements"))
 stream ("RPERA_ReaduRef.in",								ros.topic("/amigo/right_arm/wbc/references"))
@@ -238,15 +278,22 @@ stream ("RPERA_ReaduRef.in",								ros.topic("/amigo/right_arm/wbc/references")
 Supervisor.AddAllwaysOnPeer ("RPERA_ReadEncoders")
 Supervisor.AddAllwaysOnPeer ("RPERA_MotorToJointSpace")
 Supervisor.AddAllwaysOnPeer ("RPERA_JointAnglesToROS")
+Supervisor.AddAllwaysOnPeer ("RPERA_SensorTorques")
+Supervisor.AddAllwaysOnPeer ("RPERA_TorqueFeedback")
+Supervisor.AddAllwaysOnPeer ("Tracing")
+
+Supervisor.AddEnabledPeer ("RPERA_ADD", 					BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_GAIN", 					BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_ZEROS2", 					BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_ZEROS5", 					BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_JointToMotorSpace", 		BODYNUMBER )
 
 Supervisor.AddEnabledPeer ("RPERA_TorqueFeedback", 			BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_GravityTorques", 			BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_FrictionTorques", 		BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_SensorTorques", 			BODYNUMBER )
+#Supervisor.AddEnabledPeer ("RPERA_GravityTorques", 		BODYNUMBER )
+#Supervisor.AddEnabledPeer ("RPERA_FrictionTorques", 		BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueFilter", 			BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueDiff", 				BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_ReaduRef", 				BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_ZEROS2", 					BODYNUMBER )
-Supervisor.AddEnabledPeer ("RPERA_ZEROS5", 					BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_VectorConcatenate", 		BODYNUMBER )
+Supervisor.AddEnabledPeer ("RPERA_Safety", 					BODYNUMBER )
  
