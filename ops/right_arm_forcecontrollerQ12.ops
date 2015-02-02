@@ -31,11 +31,11 @@ var double TermRes_SM	= 0.611;			var double TermRes_S3	= TermRes_SM; 		var doubl
 var double TermInd_SM	= 0.000119;	 		var double TermInd_S3	= TermInd_SM; 		var double TermInd_EM	= 0.000238; 		var double TermInd_WM	= 0.00137
 var double Bq_SM 		= 1512900.0;		var double Bq_S3 		= 1512900.0;		var double Bq_EM 		= 118040.0; 		var double Bq_WM 		= 47192.0;
 var double sBq_SM 		= Bq_SM/4.0;		var double sBq_S3 		= Bq_S3/4.0;		var double sBq_EM 		= Bq_EM/4.0; 		var double sBq_WM 		= Bq_WM/4.0;
-var double K_SM			= 1.0;				var double K_S3			= 1.0;				var double K_EM			= 1.0;				var double K_WM			= 1.0;
+var double K_SM			= 700.0;			var double K_S3			= 1.0;				var double K_EM			= 1.0;				var double K_WM			= 1.0;
 var double D_SM			= 1.0;				var double D_S3			= 1.0;				var double D_EM			= 1.0;				var double D_WM			= 1.0;
 
 ### AddBodyPart ###
-Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RESETTABLE)
+Supervisor.AddBodyPart(BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RESETTABLE)
 
 #### SET UP JOINTSTATE AGGREGATOR ####
 JointStateAggregator.addJointNames(JOINT_NAMES)
@@ -232,7 +232,7 @@ connect ("RPERA_AnalogIns.out1",							"Tracing.in8",									ConnPolicy()) ; # 
 connect ("RPERA_SensorTorques.measured_torques_out",		"Tracing.in9",									ConnPolicy()) ; # TS for
 
 #### CONNECT COMPONENTS ####
-## IO ##			
+## IO ##
 connect ("Soem.Slave_1005.encoder1",						"RPERA_ReadEncoders.enc1_in",					ConnPolicy() ); # enc1
 connect ("Soem.Slave_1005.encoder2",						"RPERA_ReadEncoders.enc2_in",					ConnPolicy() ); # enc2
 connect ("Soem.Slave_1006.encoder1",						"RPERA_ReadEncoders.enc3_in",					ConnPolicy() ); # enc3

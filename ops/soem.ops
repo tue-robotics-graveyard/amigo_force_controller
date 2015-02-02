@@ -62,9 +62,11 @@ addPeer("Supervisor","RPERA_AnalogOuts")
 setActivity("RPERA_AnalogOuts",0.0,HighestPriority,ORO_SCHED_RT)
 RPERA_AnalogOuts.numberofinports    				= 1
 RPERA_AnalogOuts.numberofoutports    				= 4
+#RPERA_AnalogOuts.input_sizes 						= array (7.0)
 RPERA_AnalogOuts.input_sizes 						= array (8.0)
 RPERA_AnalogOuts.output_sizes 						= array (8.0, 3.0, 3.0, 3.0)
 RPERA_AnalogOuts.output_positions 					= array (1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,		0.0, 0.0, 0.0,		0.0, 0.0, 0.0,		1.0, 1.0, 1.0)
+#RPERA_AnalogOuts.output_positions 					= array (1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,		0.0, 0.0, 0.0,		0.0, 0.0, 0.0,		1.0, 1.0, 0.0)
 RPERA_AnalogOuts.configure
 connect ("RPERA_AnalogOuts.out1",ANALOG_OUTS_SLAVE+".values", ConnPolicy() );
 connect ("RPERA_AnalogOuts.out2",RIGHT_ARM_SHOULDER+".pwmDutyMotors", ConnPolicy() );
