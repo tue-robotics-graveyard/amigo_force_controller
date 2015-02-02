@@ -21,7 +21,7 @@ var int BODYNUMBER 				= 4
 var string BODYPARTNAME 		= "right_arm"
 var bool HOMEABLE 				= false
 var bool HOMINGOBLIGATORY		= false
-var bool RESETTABLE				= false
+var bool RESETTABLE				= true
 # Shoulder Q1/Q2 							# Shoulder motor Q3 						# Elbow motor Q4/Q5							# Wrist motor Q6/Q7
 var double GR_SM		= 1.0/550.0;		var double GR_S3		= 1.0/371.25;		var double GR_EM		= 1.0/410.0;		var double GR_WM		= 1.0/350.0
 var double C2T_SM		= 0.0538*GR_SM;		var double C2T_S3		= 1.0/371.25;		var double C2T_EM		= 1.0/410.0;		var double C2T_WM		= 1.0/350.0
@@ -288,7 +288,7 @@ Supervisor.AddEnabledPeer ("RPERA_ZEROS2", 					BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_ZEROS5", 					BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_JointToMotorSpace", 		BODYNUMBER )
 
-Supervisor.AddEnabledPeer ("RPERA_TorqueFeedback", 			BODYNUMBER )
+
 #Supervisor.AddEnabledPeer ("RPERA_GravityTorques", 		BODYNUMBER )
 #Supervisor.AddEnabledPeer ("RPERA_FrictionTorques", 		BODYNUMBER )
 Supervisor.AddEnabledPeer ("RPERA_TorqueFilter", 			BODYNUMBER )
