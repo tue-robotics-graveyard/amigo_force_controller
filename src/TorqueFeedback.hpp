@@ -42,11 +42,9 @@ namespace FORCECONTROL
 			doubles output;
 			int cntr;
 			bool safe;
+			long double old_time;
 
-			doubles MotorInertiaSuperDiagonal, MotorInertiaDiagonal, MotorInertiaSubDiagonal;
-			doubles ScaledMotorInertiaSuperDiagonal, ScaledMotorInertiaDiagonal, ScaledMotorInertiaSubDiagonal;
-			doubles DampingSuperDiagonal, DampingDiagonal, DampingSubDiagonal;
-			doubles StiffnessSuperDiagonal, StiffnessDiagonal, StiffnessSubDiagonal;
+			doubles BBtinvDiagonal, DKinvDiagonal;
 			doubles OUTU, OUTTAU, OUTTAUDOT;
 
 			// vectors

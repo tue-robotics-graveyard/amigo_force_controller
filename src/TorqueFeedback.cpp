@@ -26,28 +26,18 @@ using namespace FORCECONTROL;
 TorqueFeedback::TorqueFeedback(const string& name) : TaskContext(name, PreOperational)
 {
     // Adding ports
-    addPort( "in_u", 									inport_u );
-    addEventPort( "in_tau", 							inport_tau );
-    addPort( "in_taudot", 								inport_taudot );
+    addEventPort( "in_u", 								inport_u );
+    addPort( "in_tau", 									inport_tau );
+    addPort( "in_taudot",								inport_taudot );
+    addPort( "enable",									enable_inport);
     addPort( "outu", 									outport_u );
     addPort( "outt", 									outport_tau);
     addPort( "outtd", 									outport_taudot );
-    addPort( "enable",									enable_inport);
 
     // Adding properties
     addProperty( "N", 									N );
-    addProperty( "MotorInertiaSuperDiagonal", 			MotorInertiaSuperDiagonal );
-    addProperty( "MotorInertiaDiagonal", 				MotorInertiaDiagonal );
-    addProperty( "MotorInertiaSubDiagonal", 			MotorInertiaSubDiagonal );
-    addProperty( "ScaledMotorInertiaSuperDiagonal", 	ScaledMotorInertiaSuperDiagonal );
-    addProperty( "ScaledMotorInertiaDiagonal", 			ScaledMotorInertiaDiagonal );
-    addProperty( "ScaledMotorInertiaSubDiagonal", 		ScaledMotorInertiaSubDiagonal );
-    addProperty( "DampingSuperDiagonal", 				DampingSuperDiagonal );
-    addProperty( "DampingDiagonal", 					DampingDiagonal );
-    addProperty( "DampingSubDiagonal", 					DampingSubDiagonal );
-    addProperty( "StiffnessSuperDiagonal", 				StiffnessSuperDiagonal );
-    addProperty( "StiffnessDiagonal", 					StiffnessDiagonal );
-    addProperty( "StiffnessSubDiagonal", 				StiffnessSubDiagonal );
+    addProperty( "BBtinvDiagonal", 						BBtinvDiagonal );
+    addProperty( "DKinvDiagonal", 						DKinvDiagonal );
 }
 
 TorqueFeedback::~TorqueFeedback(){}
@@ -63,13 +53,20 @@ bool TorqueFeedback::configureHook()
     // declaration of input, intermediate and output vectors
     u.resize(N);
     tau.resize(N);
-    taudot.resize(N);     
-    
+    taudot.resize(N);    
     
     // declaration of matrices
 	DKinv.resize(N,N);
 	BBtinv.resize(N,N);
 	IMinBBtinv.resize(N,N);
+	
+	for ( uint i = 0; i < N; i++ ) {
+		for ( uint ii = 0; ii < N; ii++ ) {
+			DKinv(i,ii) = 0.0;
+			BBtinv(i,ii) = 0.0;
+			IMinBBtinv(i,ii) = 0.0;
+		}
+	}
 	
 	cntr = 0;
 	safe = false;
@@ -92,29 +89,12 @@ bool TorqueFeedback::startHook()
     }
     
     // check vector input of the four input matrices:  MotorInertia, ScaledMotorInertia, Damping, Stiffness
-    if (( MotorInertiaSuperDiagonal.size() != ( N - 1 ) ) || ( MotorInertiaDiagonal.size() != N ) || ( MotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedback: One of the input vectors of the MotorInertia Matrix has a wrong size"<<endlog();
-        return false;
-    }
-
-    if (( ScaledMotorInertiaSuperDiagonal.size() != ( N - 1 ) ) || ( ScaledMotorInertiaDiagonal.size() != N ) || ( ScaledMotorInertiaSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedback: One of the input vectors of the ScaledMotorInertia Matrix has a wrong size"<<endlog();
-        return false;
-    }
-
-    if (( DampingSuperDiagonal.size() != ( N - 1 ) ) || ( DampingDiagonal.size() != N ) || ( DampingSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedback: One of the input vectors of the Damping Matrix has a wrong size"<<endlog();
-        return false;
-    }
-    
-    if (( StiffnessSuperDiagonal.size() != ( N - 1 ) ) || ( StiffnessDiagonal.size() != N ) || ( StiffnessSubDiagonal.size() != ( N - 1 )  ) ) {
-        log(Error)<<"TorqueFeedback: One of the input vectors of the Stiffness Matrix has a wrong size"<<endlog();
+    if (BBtinvDiagonal.size() != N) {
+        log(Error)<<"TorqueFeedback: One of the input vectors of the ScaledMotorInertiaInverse Matrix has a wrong size"<<endlog();
         return false;
     }
     
     // Declare input Matrices and fill in (sub/super) diagonals
-    Eigen::MatrixXd B(N,N);
-    Eigen::MatrixXd Bt(N,N);
     Eigen::MatrixXd D(N,N);
     Eigen::MatrixXd K(N,N);
     
@@ -127,46 +107,33 @@ bool TorqueFeedback::startHook()
     
     // Filling in (Sub/Super) Diagonals
     for ( uint i = 0; i < N; i++ ) { 
-        B(i,i) = MotorInertiaDiagonal[i];
-        Bt(i,i) = ScaledMotorInertiaDiagonal[i];
-        D(i,i) = DampingDiagonal[i];
-        K(i,i) = StiffnessDiagonal[i];
-    }
-        
-    for ( uint i = 0; i < ( N - 1 ) ; i++ ) {
-        B(i,(i+1)) = MotorInertiaSuperDiagonal[i];
-        Bt(i,(i+1)) = ScaledMotorInertiaSuperDiagonal[i];
-        D(i,(i+1)) = DampingSuperDiagonal[i];
-        K(i,(i+1)) = StiffnessSuperDiagonal[i];
-        B((i+1),i) = MotorInertiaSubDiagonal[i];
-        Bt((i+1),i) = ScaledMotorInertiaSubDiagonal[i];
-        D((i+1),i) = DampingSubDiagonal[i];
-        K((i+1),i) = StiffnessSubDiagonal[i];
+        BBtinv(i,i) = BBtinvDiagonal[i];
+        DKinv(i,i) = DKinvDiagonal[i];
     }
     
     // Calculate constant matrices DKinv, BBt_inv, IdentityMinBBt_inv
     Eigen::MatrixXd I;
     I.setIdentity(N,N);
-    DKinv = D * K.inverse();
-    BBtinv = Bt.inverse();
-    IMinBBtinv = (I - (BBtinv));
-       
-    log(Warning)<<"TorqueFeedback:             I: [" << I(0,0) << ", " << I(0,1) << "; " << I(1,0) << ", " << I(1,1) << "]!"<<endlog();
-	log(Warning)<<"TorqueFeedback:             D: [" << D(0,0) << ", " << D(0,1) << "; " << D(1,0) << ", " << D(1,1) << "]!"<<endlog();
-    log(Warning)<<"TorqueFeedback:             K: [" << K(0,0) << ", " << K(0,1) << "; " << K(1,0) << ", " << K(1,1) << "]!"<<endlog();
+    IMinBBtinv = (I - BBtinv);
     
-    log(Warning)<<"TorqueFeedback:             B: [" << B(0,0) << ", " << B(0,1) << "; " << B(1,0) << ", " << B(1,1) << "]!"<<endlog();
-    log(Warning)<<"TorqueFeedback:            Bt: [" << Bt(0,0) << ", " << Bt(0,1) << "; " << Bt(1,0) << ", " << Bt(1,1) << "]!"<<endlog();
-   
     log(Warning)<<"TorqueFeedback:         DKinv: [" << DKinv(0,0) << ", " << DKinv(0,1) << "; " << DKinv(1,0) << ", " << DKinv(1,1) << "]!"<<endlog();
     log(Warning)<<"TorqueFeedback:        BBtinv: [" << BBtinv(0,0) << ", " << BBtinv(0,1) << "; " << BBtinv(1,0) << ", " << BBtinv(1,1) << "]!"<<endlog();
     log(Warning)<<"TorqueFeedback:    IMinBBtinv: [" << IMinBBtinv(0,0) << ", " << IMinBBtinv(0,1) << "; " << IMinBBtinv(1,0) << ", " << IMinBBtinv(1,1) << "]!"<<endlog();
+
+	old_time = os::TimeService::Instance()->getNSecs()*1e-9;
 
     return true;
 } 
  
 void TorqueFeedback::updateHook()
 {
+	long double new_time = os::TimeService::Instance()->getNSecs()*1e-9;
+    double dt = (new_time - old_time);
+    old_time = new_time;
+    if (dt>0.0014 || dt<0.0006){
+		log(Warning)<<"TorqueFeedback: dt is "<< dt << endlog();
+	}
+	
 	// send control output of safe is false is received
     if (enable_inport.read(safe) == false) {
 		doubles zeros(N,0.0);

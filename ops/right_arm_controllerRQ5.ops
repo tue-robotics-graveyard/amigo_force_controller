@@ -56,7 +56,7 @@ Supervisor.AddBodyPart( BODYNUMBER, BODYPARTNAME, HOMEABLE, HOMINGOBLIGATORY, RE
 
 ### HIGH PRIORITY COMPONENTS ####
 ## Read reference joint angles ###
-loadComponent("RPERA_ReadReferences","ROS::BenchmarkReference")
+loadComponent("RPERA_ReadReferences","SOURCES::BenchmarkReference")
 addPeer("Supervisor","RPERA_ReadReferences")
 setActivity("RPERA_ReadReferences",TS,HighestPriority,ORO_SCHED_RT)
 RPERA_ReadReferences.vector_size 			= 7
